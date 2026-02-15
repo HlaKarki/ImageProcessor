@@ -1,4 +1,5 @@
 using System.Text;
+using Amazon.S3;
 using ImageProcessor.ApiService.Services;
 using ImageProcessor.ApiService.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -36,6 +37,22 @@ builder.Services.AddScoped<AuthService>();
 
 // Add Controllers
 builder.Services.AddControllers();
+
+// Add S3 Client
+builder.Services.AddSingleton<IAmazonS3>(options =>
+{
+    var config = builder.Configuration;
+    return new AmazonS3Client(
+        config["AWS:AccessKeyId"],
+        config["AWS:SecretAccessKey"],
+        new AmazonS3Config
+        {
+            ServiceURL = config["AWS:ServiceURL"],
+            ForcePathStyle = true
+        }
+    );
+});
+builder.Services.AddScoped<S3Service>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
