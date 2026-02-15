@@ -52,10 +52,10 @@ public class JobService(IJobRepository jobs)
         );
     }
 
-    public async Task<IEnumerable<JobResponse>> GetAllByUserAsync(Guid userId, int page, int pageSize)
+    public async Task<PaginatedJobResponse> GetAllByUserAsync(Guid userId, int page, int pageSize)
     {
         var results = await jobs.GetAllByUserAsync(userId, page, pageSize);
-        return results.Items.Select(job => new JobResponse(
+        var items = results.Items.Select(job => new JobResponse(
             job.Id,
             job.UserId,
             job.Status.ToString(),
@@ -64,6 +64,14 @@ public class JobService(IJobRepository jobs)
             job.FileSize,
             job.CreatedAt
         ));
+        
+        return new PaginatedJobResponse(
+            items,
+            page,
+            pageSize,
+            results.TotalCount,
+            (int)Math.Ceiling((double)results.TotalCount / pageSize)
+        );
     }
     
     private async Task<Job> AddAsync(Job job)  => await jobs.AddAsync(job);

@@ -279,11 +279,11 @@ Authorization: Bearer <jwt>
 ## 🚀 Implementation Phases
 
 ### Phase 1: Foundation (Week 1)
-- [ ] Set up Aspire host project
-- [ ] Create API and Worker services
-- [ ] Configure PostgreSQL with EF Core
-- [ ] Implement basic CRUD for users
-- [ ] Set up JWT authentication
+- [x] Set up Aspire host project
+- [x] Create API and Worker services
+- [x] Configure PostgreSQL with EF Core
+- [x] Implement basic CRUD for users
+- [x] Set up JWT authentication
 
 ### Phase 2: File Upload (Week 1-2)
 - [x] Implement multipart file upload endpoint
@@ -294,7 +294,7 @@ Authorization: Bearer <jwt>
 - [x] Implement GET /api/images/{jobId} and GET /api/images endpoints
 - [x] Add response DTOs to prevent domain model leaking
 - [x] Fix ownership check on GET /api/images/{jobId} (any user can query any job ID)
-- [ ] Add pagination to GET /api/images
+- [x] Add pagination to GET /api/images
 - [ ] Add basic error handling middleware
 
 ### Phase 3: Message Queue (Week 2)
