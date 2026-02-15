@@ -52,7 +52,7 @@ public class JobService(IJobRepository jobs)
         );
     }
 
-    public async Task<PaginatedJobResponse> GetAllByUserAsync(Guid userId, int page, int pageSize)
+    public async Task<PagedResponse<JobResponse>> GetAllByUserAsync(Guid userId, int page, int pageSize)
     {
         var results = await jobs.GetAllByUserAsync(userId, page, pageSize);
         var items = results.Items.Select(job => new JobResponse(
@@ -65,7 +65,7 @@ public class JobService(IJobRepository jobs)
             job.CreatedAt
         ));
         
-        return new PaginatedJobResponse(
+        return new PagedResponse<JobResponse>(
             items,
             page,
             pageSize,
