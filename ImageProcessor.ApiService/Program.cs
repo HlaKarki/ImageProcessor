@@ -1,7 +1,6 @@
 using System.Text;
 using ImageProcessor.ApiService.Services;
 using ImageProcessor.ApiService.Data;
-using ImageProcessor.ApiService.Models.DTOs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -35,6 +34,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<AuthService>();
 
+// Add Controllers
+builder.Services.AddControllers();
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -58,42 +60,9 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-string[] summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"];
-
 app.MapGet("/", () => "API service is running. Navigate to /weatherforecast to see sample data.");
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
-
-app.MapPost("/auth/register", async (RegisterRequest request, AuthService auth) =>
-{
-    var result = await auth.Register(request);
-    return result is null ? Results.Conflict("Email already in use.") : Results.Ok(result);
-    
-});
-
-app.MapPost("/auth/login", async (LoginRequest request, AuthService auth) =>
-{
-    var result = await auth.Login(request);
-    return result is null ? Results.Unauthorized() : Results.Ok(result);
-});
-
 app.MapDefaultEndpoints();
+app.MapControllers();
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
