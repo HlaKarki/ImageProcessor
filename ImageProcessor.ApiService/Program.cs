@@ -1,7 +1,7 @@
 using System.Text;
-using ImageProcessor.ApiService.Application.DTOs;
-using ImageProcessor.ApiService.Application.Services;
-using ImageProcessor.ApiService.Infrastructure.Database;
+using ImageProcessor.ApiService.Services;
+using ImageProcessor.ApiService.Data;
+using ImageProcessor.ApiService.Models.DTOs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;

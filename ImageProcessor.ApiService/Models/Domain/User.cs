@@ -1,4 +1,4 @@
-namespace ImageProcessor.ApiService.Domain.Entities;
+namespace ImageProcessor.ApiService.Models.Domain;
 
 public class User
 {

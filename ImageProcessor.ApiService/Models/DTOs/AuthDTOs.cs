@@ -1,4 +1,4 @@
-namespace ImageProcessor.ApiService.Application.DTOs;
+namespace ImageProcessor.ApiService.Models.DTOs;
 
 public record RegisterRequest(string Name, string Email, string Password);
 

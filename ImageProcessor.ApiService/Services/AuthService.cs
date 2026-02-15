@@ -1,13 +1,13 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using ImageProcessor.ApiService.Application.DTOs;
-using ImageProcessor.ApiService.Domain.Entities;
-using ImageProcessor.ApiService.Infrastructure.Database;
+using ImageProcessor.ApiService.Data;
+using ImageProcessor.ApiService.Models.Domain;
+using ImageProcessor.ApiService.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
-namespace ImageProcessor.ApiService.Application.Services;
+namespace ImageProcessor.ApiService.Services;
 
 public class AuthService(AppDbContext db, IConfiguration configuration)
 {

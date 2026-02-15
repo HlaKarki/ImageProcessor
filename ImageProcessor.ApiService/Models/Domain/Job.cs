@@ -1,6 +1,5 @@
+namespace ImageProcessor.ApiService.Models.Domain;
 using System.Text.Json;
-
-namespace ImageProcessor.ApiService.Domain.Entities;
 
 public enum JobStatus { Pending, Processing, Completed, Finished, Error }
 
@@ -33,4 +32,3 @@ public class Job
 // Create index on UserId
 // Create index on Status
 // Create index on CreatedAt
-    

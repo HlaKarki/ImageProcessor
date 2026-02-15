@@ -1,7 +1,7 @@
-using ImageProcessor.ApiService.Domain.Entities;
+using ImageProcessor.ApiService.Models.Domain;
 using Microsoft.EntityFrameworkCore;
 
-namespace ImageProcessor.ApiService.Infrastructure.Database;
+namespace ImageProcessor.ApiService.Data;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
