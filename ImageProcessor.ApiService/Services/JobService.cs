@@ -1,11 +1,12 @@
-using ImageProcessor.ApiService.Data;
 using ImageProcessor.ApiService.Models.Domain;
+using ImageProcessor.ApiService.Models.DTOs;
+using ImageProcessor.ApiService.Repositories.Jobs;
 
 namespace ImageProcessor.ApiService.Services;
 
-public class JobService(AppDbContext db)
+public class JobService(IJobRepository jobs)
 {
-    public async Task<Job> CreateAsync(string jobId, string userId, string url, IFormFile file)
+    public async Task<JobResponse> CreateAsync(string jobId, string userId, string url, IFormFile file)
     {
         // create a Job record
         var job = new Job
@@ -22,10 +23,48 @@ public class JobService(AppDbContext db)
             MimeType = file.ContentType,
             CreatedAt = DateTime.UtcNow
         };
-
-        db.Jobs.Add(job);
-        await db.SaveChangesAsync();
-
-        return job;
+        
+        await jobs.AddAsync(job);
+        return new JobResponse(
+            job.Id,
+            job.UserId,
+            job.Status.ToString(),
+            job.OriginalUrl,
+            job.OriginalFilename,
+            job.FileSize,
+            job.CreatedAt
+        );
     }
+    
+    public async Task<JobResponse?> GetByIdAsync(Guid jobId)
+    {
+        var job = await jobs.GetByIdAsync(jobId);
+        if (job is null) return null;
+
+        return new JobResponse(
+            job.Id,
+            job.UserId,
+            job.Status.ToString(),
+            job.OriginalUrl,
+            job.OriginalFilename,
+            job.FileSize,
+            job.CreatedAt
+        );
+    }
+
+    public async Task<IEnumerable<JobResponse>> GetAllByUserAsync(Guid userId)
+    {
+        var results = await jobs.GetAllByUserAsync(userId);
+        return results.Select(job => new JobResponse(
+            job.Id,
+            job.UserId,
+            job.Status.ToString(),
+            job.OriginalUrl,
+            job.OriginalFilename,
+            job.FileSize,
+            job.CreatedAt
+        ));
+    }
+    
+    private async Task<Job> AddAsync(Job job)  => await jobs.AddAsync(job);
 }

@@ -40,4 +40,21 @@ public class ImagesController(S3Service s3, JobService jobService) : ControllerB
         
         return Ok(new { job.Id, job.OriginalUrl, job.Status});
     }
+
+    [HttpGet("{jobId}")]
+    public async Task<IActionResult> Get([FromRoute] Guid jobId)
+    {
+        var result = await jobService.GetByIdAsync(jobId);
+        return result is null ? NotFound($"No jobs exist with job id {jobId}") : Ok(result);
+    }
+
+    [HttpGet("")]
+    public async Task<IActionResult> Get()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return NotFound();
+        
+        var result = await jobService.GetAllByUserAsync(Guid.Parse(userId));
+        return Ok(result);
+    }
 }

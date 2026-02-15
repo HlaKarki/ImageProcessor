@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Amazon.S3;
 using ImageProcessor.ApiService.Services;
 using ImageProcessor.ApiService.Data;
+using ImageProcessor.ApiService.Repositories.Jobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -42,6 +43,9 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
+
+// Add Repositories
+builder.Services.AddScoped<IJobRepository, JobRepository>();
 
 // Add S3 Client
 builder.Services.AddSingleton<IAmazonS3>(options =>
