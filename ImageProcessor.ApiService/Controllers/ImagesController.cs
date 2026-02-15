@@ -22,6 +22,7 @@ public class ImagesController(S3Service s3, JobService jobService) : ControllerB
         {
             return BadRequest("Only JPEG, PNG, and WEBP images are allowed.");
         }
+        
         // validate file size
         if (request.file.Length > ImageUploadConstants.MaxFileSize)
         {

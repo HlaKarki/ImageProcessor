@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using Amazon.S3;
 using ImageProcessor.ApiService.Services;
 using ImageProcessor.ApiService.Data;
@@ -36,7 +37,11 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<AuthService>();
 
 // Add Controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 // Add S3 Client
 builder.Services.AddSingleton<IAmazonS3>(options =>
