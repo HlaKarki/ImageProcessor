@@ -1,4 +1,6 @@
 using System.Text;
+using ImageProcessor.ApiService.Application.DTOs;
+using ImageProcessor.ApiService.Application.Services;
 using ImageProcessor.ApiService.Infrastructure.Database;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +33,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddScoped<AuthService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -72,6 +75,19 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 })
 .WithName("GetWeatherForecast");
+
+app.MapPost("/auth/register", async (RegisterRequest request, AuthService auth) =>
+{
+    var result = await auth.Register(request);
+    return result is null ? Results.Conflict("Email already in use.") : Results.Ok(result);
+    
+});
+
+app.MapPost("/auth/login", async (LoginRequest request, AuthService auth) =>
+{
+    var result = await auth.Login(request);
+    return result is null ? Results.Unauthorized() : Results.Ok(result);
+});
 
 app.MapDefaultEndpoints();
 
