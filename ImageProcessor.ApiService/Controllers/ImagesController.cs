@@ -51,12 +51,12 @@ public class ImagesController(S3Service s3, JobService jobService) : ControllerB
     }
 
     [HttpGet("")]
-    public async Task<IActionResult> Get()
+    public async Task<IActionResult> Get([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userId is null) return NotFound();
+        if (userId is null) return Unauthorized();
         
-        var result = await jobService.GetAllByUserAsync(Guid.Parse(userId));
+        var result = await jobService.GetAllByUserAsync(Guid.Parse(userId), page, pageSize);
         return Ok(result);
     }
 }

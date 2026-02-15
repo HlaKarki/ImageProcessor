@@ -52,10 +52,10 @@ public class JobService(IJobRepository jobs)
         );
     }
 
-    public async Task<IEnumerable<JobResponse>> GetAllByUserAsync(Guid userId)
+    public async Task<IEnumerable<JobResponse>> GetAllByUserAsync(Guid userId, int page, int pageSize)
     {
-        var results = await jobs.GetAllByUserAsync(userId);
-        return results.Select(job => new JobResponse(
+        var results = await jobs.GetAllByUserAsync(userId, page, pageSize);
+        return results.Items.Select(job => new JobResponse(
             job.Id,
             job.UserId,
             job.Status.ToString(),

@@ -10,10 +10,17 @@ public class JobRepository(AppDbContext db) : IJobRepository
     {
         return await db.Jobs.FirstOrDefaultAsync(j => j.Id == jobId);
     }
-
-    public async Task<IEnumerable<Job>> GetAllByUserAsync(Guid userId)
+    
+    public async Task<(IEnumerable<Job> Items, int TotalCount)> GetAllByUserAsync(Guid userId, int page, int pageSize)
     {
-        return await db.Jobs.Where(j => j.UserId == userId).ToListAsync();
+        var query = db.Jobs.Where(j => j.UserId == userId);
+        var total = await query.CountAsync();
+        var items = await query.OrderByDescending(j => j.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+        
+        return (items, total);
     }
 
     public async Task<Job> AddAsync(Job job)

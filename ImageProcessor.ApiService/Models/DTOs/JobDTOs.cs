@@ -9,3 +9,11 @@ public record JobResponse(
     long FileSize,
     DateTime CreatedAt
 );
+
+public record PaginatedJobResponse(
+    IEnumerable<JobResponse> Items,
+    int Page,
+    int PageSize,
+    int TotalCount,
+    int TotalPages
+);
