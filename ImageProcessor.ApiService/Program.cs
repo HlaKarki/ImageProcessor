@@ -54,6 +54,8 @@ builder.Services.AddSingleton<IAmazonS3>(options =>
 });
 builder.Services.AddScoped<S3Service>();
 
+builder.Services.AddScoped<JobService>();
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 

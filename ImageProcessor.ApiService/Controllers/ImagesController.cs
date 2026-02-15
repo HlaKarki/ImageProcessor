@@ -9,7 +9,7 @@ namespace ImageProcessor.ApiService.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ImagesController(S3Service s3) : ControllerBase
+public class ImagesController(S3Service s3, JobService jobService) : ControllerBase
 {
     [HttpPost("upload")]
     public async Task<IActionResult> Upload([FromForm] ImageUploadRequest request)
@@ -34,7 +34,9 @@ public class ImagesController(S3Service s3) : ControllerBase
 
         var jobId = Guid.NewGuid().ToString();
         var url = await s3.UploadAsync(request.file, userId, jobId);
+
+        var job = await jobService.CreateAsync(jobId, userId, url, request.file);
         
-        return Ok(new { jobId, url});
+        return Ok(new { job.Id, job.OriginalUrl, job.Status});
     }
 }
