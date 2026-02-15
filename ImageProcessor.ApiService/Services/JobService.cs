@@ -36,9 +36,9 @@ public class JobService(IJobRepository jobs)
         );
     }
     
-    public async Task<JobResponse?> GetByIdAsync(Guid jobId)
+    public async Task<JobResponse?> GetByIdAsync(Guid jobId, Guid userId)
     {
-        var job = await jobs.GetByIdAsync(jobId);
+        var job = await jobs.GetByIdAndUserAsync(jobId, userId);
         if (job is null) return null;
 
         return new JobResponse(

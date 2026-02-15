@@ -44,7 +44,9 @@ public class ImagesController(S3Service s3, JobService jobService) : ControllerB
     [HttpGet("{jobId}")]
     public async Task<IActionResult> Get([FromRoute] Guid jobId)
     {
-        var result = await jobService.GetByIdAsync(jobId);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Unauthorized();
+        var result = await jobService.GetByIdAsync(jobId, Guid.Parse(userId));
         return result is null ? NotFound($"No jobs exist with job id {jobId}") : Ok(result);
     }
 

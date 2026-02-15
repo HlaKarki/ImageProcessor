@@ -22,4 +22,8 @@ public class JobRepository(AppDbContext db) : IJobRepository
         await db.SaveChangesAsync();
         return job;
     }
+
+    public async Task<Job?> GetByIdAndUserAsync(Guid jobId, Guid userId) => 
+        await db.Jobs.FirstOrDefaultAsync(j => j.Id == jobId && j.UserId == userId);
+    
 }

@@ -286,11 +286,16 @@ Authorization: Bearer <jwt>
 - [ ] Set up JWT authentication
 
 ### Phase 2: File Upload (Week 1-2)
-- [ ] Implement multipart file upload endpoint
-- [ ] Integrate AWS S3 SDK
-- [ ] Create jobs table and entity
-- [ ] Implement file validation
-- [ ] Add basic error handling
+- [x] Implement multipart file upload endpoint
+- [x] Integrate AWS S3 SDK (Cloudflare R2 via S3-compatible API)
+- [x] Create jobs table and entity
+- [x] Implement file validation (extension, MIME type, file size)
+- [x] Implement repository pattern (IJobRepository / JobRepository)
+- [x] Implement GET /api/images/{jobId} and GET /api/images endpoints
+- [x] Add response DTOs to prevent domain model leaking
+- [x] Fix ownership check on GET /api/images/{jobId} (any user can query any job ID)
+- [ ] Add pagination to GET /api/images
+- [ ] Add basic error handling middleware
 
 ### Phase 3: Message Queue (Week 2)
 - [ ] Set up RabbitMQ in Aspire
