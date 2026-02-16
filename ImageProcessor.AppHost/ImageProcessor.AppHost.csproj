@@ -10,10 +10,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ImageProcessor.ApiService\ImageProcessor.ApiService.csproj" />
+    <ProjectReference Include="..\ImageProcessor.Worker\ImageProcessor.Worker.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.1.1" />
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="13.1.1" />
     <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.1.1" />
   </ItemGroup>
 
