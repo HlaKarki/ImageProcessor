@@ -52,7 +52,7 @@ builder.Services.AddControllers()
 builder.Services.AddScoped<IJobRepository, JobRepository>();
 
 // Add S3 Client
-builder.Services.AddSingleton<IAmazonS3>(options =>
+builder.Services.AddSingleton<IAmazonS3>(_ =>
 {
     var config = builder.Configuration;
     return new AmazonS3Client(

@@ -5,13 +5,13 @@ namespace ImageProcessor.Worker.Services;
 
 public class StorageService(IAmazonS3 s3, IConfiguration config, ILogger<StorageService> logger)
 {
-    private readonly string _bucket = config["AWS:BucketName"];
-    private readonly string _serviceUrl = config["AWS:ServiceURL"];
+    private readonly string _bucket = config["AWS:BucketName"]!;
+    private readonly string _serviceUrl = config["AWS:ServiceURL"]!;
 
     public string ExtractKey(string url)
     {
         var prefix = $"{_serviceUrl}/{_bucket}";
-        return url.StartsWith(prefix) ? url[prefix.Length..] : url;
+        return url.StartsWith(prefix) ? url[prefix.Length..].TrimStart('/') : url;
     }
 
     public async Task<Stream> DownloadAsync(string key)
