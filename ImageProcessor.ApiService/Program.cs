@@ -10,6 +10,7 @@ using ImageProcessor.ApiService.Messaging;
 using ImageProcessor.ApiService.Repositories.Jobs;
 using ImageProcessor.ApiService.Repositories.Storage;
 using ImageProcessor.ApiService.Services;
+using ImageProcessor.ApiService.Telemetry;
 using ImageProcessor.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── Aspire ────────────────────────────────────────────────
 builder.AddServiceDefaults();
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics.AddMeter(ApiTelemetry.ServiceName));
 builder.AddNpgsqlDbContext<AppDbContext>("imageprocessordb");
 builder.AddRabbitMQClient("rabbitmq");
 

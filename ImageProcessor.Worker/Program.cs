@@ -3,6 +3,7 @@ using ImageProcessor.Data;
 using ImageProcessor.Worker;
 using ImageProcessor.Worker.Repositories;
 using ImageProcessor.Worker.Services;
+using ImageProcessor.Worker.Telemetry;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
@@ -11,6 +12,8 @@ var builder = Host.CreateApplicationBuilder(args);
 
 // ── Aspire ────────────────────────────────────────────────
 builder.AddServiceDefaults();
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics.AddMeter(WorkerTelemetry.ServiceName));
 builder.AddNpgsqlDbContext<AppDbContext>("imageprocessordb");
 builder.AddRabbitMQClient("rabbitmq");
 
