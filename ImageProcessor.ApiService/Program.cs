@@ -120,6 +120,18 @@ builder.Services.AddResiliencePipeline("storage", pipeline =>
         });
 });
 
+builder.Services.AddResiliencePipeline("messaging", pipeline =>
+{
+    pipeline
+        .AddRetry(new RetryStrategyOptions
+        {
+            MaxRetryAttempts = 3,
+            BackoffType = DelayBackoffType.Exponential,
+            UseJitter = true,
+            Delay = TimeSpan.FromMilliseconds(700),
+        });
+});
+
 // Exception Handler
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
