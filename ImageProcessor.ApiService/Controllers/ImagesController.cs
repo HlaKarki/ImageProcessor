@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using ImageProcessor.ApiService.Models.DTOs;
+using ImageProcessor.ApiService.Repositories.Storage;
 using ImageProcessor.ApiService.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,12 +10,11 @@ namespace ImageProcessor.ApiService.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ImagesController(S3Service s3, JobService jobService) : ControllerBase
+public class ImagesController(IStorageService storage, JobService jobService) : ControllerBase
 {
     [HttpPost("upload")]
     public async Task<IActionResult> Upload([FromForm] ImageUploadRequest request)
     {
-        
         // validate the file extension and mime type
         var extension = Path.GetExtension(request.file.FileName).ToLowerInvariant();
 
@@ -34,7 +34,7 @@ public class ImagesController(S3Service s3, JobService jobService) : ControllerB
         if (userId is null) return Unauthorized();
 
         var jobId = Guid.NewGuid().ToString();
-        var url = await s3.UploadAsync(request.file, userId, jobId);
+        var url = await storage.UploadAsync(request.file, userId, jobId);
 
         var job = await jobService.CreateAsync(jobId, userId, url, request.file);
         

@@ -1,12 +1,13 @@
 using Amazon.S3;
 using Amazon.S3.Model;
+using ImageProcessor.Worker.Repositories;
 
 namespace ImageProcessor.Worker.Services;
 
-public class StorageService(IAmazonS3 s3, IConfiguration config, ILogger<StorageService> logger)
+public class R2StorageService(IAmazonS3 s3, IConfiguration config, ILogger<R2StorageService> logger) : IStorageService
 {
-    private readonly string _bucket = config["AWS:BucketName"]!;
-    private readonly string _serviceUrl = config["AWS:ServiceURL"]!;
+    private readonly string _bucket = config["CF:BucketName"]!;
+    private readonly string _serviceUrl = config["CF:ServiceURL"]!;
 
     public string ExtractKey(string url)
     {

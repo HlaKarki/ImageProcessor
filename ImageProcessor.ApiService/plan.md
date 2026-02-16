@@ -306,14 +306,14 @@ Authorization: Bearer <jwt>
 - [x] Test async flow end-to-end
 
 ### Phase 4: Image Processing (Week 2-3)
-- [ ] Integrate image processing library (ImageSharp or SkiaSharp)
-- [ ] Implement thumbnail generation
-- [ ] Implement format conversion (WebP, AVIF)
-- [ ] Extract EXIF metadata
-- [ ] Calculate dominant colors
+- [x] Integrate image processing library (ImageSharp or SkiaSharp)
+- [x] Implement thumbnail generation
+- [x] Implement format conversion (WebP, ~~AVIF~~)
+- [x] Extract EXIF metadata
+- [x] Calculate dominant colors
 
 ### Phase 5: Storage & CDN (Week 3)
-- [ ] Upload processed results to S3
+- [x] Upload processed results to S3
 - [ ] Configure CloudFront distribution
 - [ ] Generate CDN URLs
 - [ ] Implement pre-signed URLs for uploads

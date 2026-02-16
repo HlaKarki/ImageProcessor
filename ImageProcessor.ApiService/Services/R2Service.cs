@@ -4,9 +4,9 @@ using ImageProcessor.ApiService.Repositories.Storage;
 
 namespace ImageProcessor.ApiService.Services;
 
-public class S3Service(IAmazonS3 s3, IConfiguration configuration) : IStorageService
+public class R2Service(IAmazonS3 s3, IConfiguration configuration) : IStorageService
 {
-    private readonly string _bucket = configuration["AWS:BucketName"]!;
+    private readonly string _bucket = configuration["CF:BucketName"]!;
 
     public async Task<string> UploadAsync(IFormFile file, string userId, string jobId)
     {
@@ -26,6 +26,6 @@ public class S3Service(IAmazonS3 s3, IConfiguration configuration) : IStorageSer
         
         await s3.PutObjectAsync(request);
 
-        return $"https://{_bucket}.s3.{configuration["AWS:Region"]}.amazonaws.com/{key}";
+        return $"{configuration["CF:ServiceURL"]}/{_bucket}/{key}";
     }
 }

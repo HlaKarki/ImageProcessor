@@ -5,6 +5,7 @@ using ImageProcessor.ApiService.Services;
 using ImageProcessor.ApiService.Exceptions;
 using ImageProcessor.ApiService.Messaging;
 using ImageProcessor.ApiService.Repositories.Jobs;
+using ImageProcessor.ApiService.Repositories.Storage;
 using ImageProcessor.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -52,20 +53,39 @@ builder.Services.AddControllers()
 builder.Services.AddScoped<IJobRepository, JobRepository>();
 
 // Add S3 Client
+var provider = builder.Configuration["Storage:Provider"] ?? "AWS";
 builder.Services.AddSingleton<IAmazonS3>(_ =>
 {
     var config = builder.Configuration;
+
+    if (provider == "AWS")
+    {
+        return new AmazonS3Client(
+            config["AWS:AccessKeyId"],
+            config["AWS:SecretAccessKey"],
+            Amazon.RegionEndpoint.GetBySystemName(config["AWS:Region"])
+        );    
+    } 
     return new AmazonS3Client(
-        config["AWS:AccessKeyId"],
-        config["AWS:SecretAccessKey"],
+        config["CF:AccessKeyId"],
+        config["CF:SecretAccessKey"],
         new AmazonS3Config
         {
-            ServiceURL = config["AWS:ServiceURL"],
-            ForcePathStyle = true
+            ServiceURL = config["CF:ServiceURL"],
+            ForcePathStyle = true,
+            AuthenticationRegion = "auto"
         }
     );
 });
-builder.Services.AddScoped<S3Service>();
+
+if (provider == "AWS")
+{
+    builder.Services.AddScoped<IStorageService, S3Service>();
+}
+else
+{
+    builder.Services.AddScoped<IStorageService, R2Service>();    
+}
 
 builder.Services.AddScoped<JobService>();
 

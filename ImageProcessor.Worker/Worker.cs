@@ -3,11 +3,11 @@ using System.Text.Json;
 using ImageProcessor.Contracts.Messages;
 using ImageProcessor.Data;
 using ImageProcessor.Data.Models.Domain;
+using ImageProcessor.Worker.Repositories;
 using ImageProcessor.Worker.Services;
 using Microsoft.EntityFrameworkCore;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using SixLabors.ImageSharp.Processing.Processors;
 
 namespace ImageProcessor.Worker;
 
@@ -44,7 +44,7 @@ public class Worker(
 
             using var scope = scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var storage = scope.ServiceProvider.GetRequiredService<StorageService>();
+            var storage = scope.ServiceProvider.GetRequiredService<IStorageService>();
             var processor = scope.ServiceProvider.GetRequiredService<ImageProcessingService>();
 
             var job = await db.Jobs.FirstOrDefaultAsync(j => j.Id == message.JobId);
