@@ -295,7 +295,8 @@ Authorization: Bearer <jwt>
 - [x] Add response DTOs to prevent domain model leaking
 - [x] Fix ownership check on GET /api/images/{jobId} (any user can query any job ID)
 - [x] Add pagination to GET /api/images
-- [ ] Add basic error handling middleware
+- [x] Add basic error handling middleware
+- [x] Add structured logging via ILogger<T>
 
 ### Phase 3: Message Queue (Week 2)
 - [ ] Set up RabbitMQ in Aspire
@@ -342,7 +343,7 @@ Authorization: Bearer <jwt>
 - [ ] Implement structured logging
 
 ### Phase 10: Polish (Week 5-6)
-- [ ] Add Swagger documentation
+- [ ] Add OpenAPI documentation
 - [ ] Write integration tests
 - [ ] Add rate limiting
 - [ ] Performance optimization
