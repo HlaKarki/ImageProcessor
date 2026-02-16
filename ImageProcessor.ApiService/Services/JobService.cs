@@ -1,7 +1,7 @@
 using ImageProcessor.ApiService.Models.DTOs;
 using ImageProcessor.ApiService.Repositories.Jobs;
 using ImageProcessor.Contracts.Messages;
-using ImageProcessor.Data.Models;
+using ImageProcessor.Data.Models.Domain;
 
 namespace ImageProcessor.ApiService.Services;
 

@@ -3,7 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using ImageProcessor.ApiService.Models.DTOs;
 using ImageProcessor.Data;
-using ImageProcessor.Data.Models;
+using ImageProcessor.Data.Models.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 

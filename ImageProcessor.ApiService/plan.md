@@ -300,10 +300,10 @@ Authorization: Bearer <jwt>
 
 ### Phase 3: Message Queue (Week 2)
 - [x] Set up RabbitMQ in Aspire
-- [ ] Implement message publisher in API
-- [ ] Implement message consumer in Worker
-- [ ] Add job status updates
-- [ ] Test async flow end-to-end
+- [x] Implement message publisher in API
+- [x] Implement message consumer in Worker
+- [x] Add job status updates
+- [x] Test async flow end-to-end
 
 ### Phase 4: Image Processing (Week 2-3)
 - [ ] Integrate image processing library (ImageSharp or SkiaSharp)

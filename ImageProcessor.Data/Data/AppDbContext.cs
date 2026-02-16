@@ -1,4 +1,4 @@
-using ImageProcessor.Data.Models;
+using ImageProcessor.Data.Models.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace ImageProcessor.Data;
