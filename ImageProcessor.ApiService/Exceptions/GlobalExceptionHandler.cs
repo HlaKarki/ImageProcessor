@@ -2,13 +2,17 @@ using Microsoft.AspNetCore.Diagnostics;
 
 namespace ImageProcessor.ApiService.Exceptions;
 
-public class GlobalExceptionHandler : IExceptionHandler
+public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
         CancellationToken cancellationToken)
     {
+        logger.LogError(exception, "Unhandled exception on {Method} {Path}",
+            httpContext.Request.Method,
+            httpContext.Request.Path);
+        
         var (status, title) = exception switch
         {
             UnauthorizedAccessException => (401, "Unauthorized"),
