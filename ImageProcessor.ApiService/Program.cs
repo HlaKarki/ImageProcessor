@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Amazon.S3;
 using ImageProcessor.ApiService.Services;
 using ImageProcessor.ApiService.Data;
+using ImageProcessor.ApiService.Exceptions;
 using ImageProcessor.ApiService.Repositories.Jobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -64,6 +65,9 @@ builder.Services.AddSingleton<IAmazonS3>(options =>
 builder.Services.AddScoped<S3Service>();
 
 builder.Services.AddScoped<JobService>();
+
+// Exception Handler
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
