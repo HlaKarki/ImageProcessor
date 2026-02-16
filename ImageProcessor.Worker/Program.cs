@@ -8,26 +8,24 @@ using Polly.CircuitBreaker;
 using Polly.Retry;
 
 var builder = Host.CreateApplicationBuilder(args);
+
+// ── Aspire ────────────────────────────────────────────────
 builder.AddServiceDefaults();
-
-builder.AddRabbitMQClient("rabbitmq");
 builder.AddNpgsqlDbContext<AppDbContext>("imageprocessordb");
+builder.AddRabbitMQClient("rabbitmq");
 
-// Add S3 Client
+// ── Storage ───────────────────────────────────────────────
 var provider = builder.Configuration["Storage:Provider"] ?? "AWS";
-
 builder.Services.AddSingleton<IAmazonS3>(_ =>
 {
     var config = builder.Configuration;
-
     if (provider == "AWS")
     {
         return new AmazonS3Client(
             config["AWS:AccessKeyId"],
             config["AWS:SecretAccessKey"],
-            Amazon.RegionEndpoint.GetBySystemName(config["AWS:Region"])
-        );    
-    } 
+            Amazon.RegionEndpoint.GetBySystemName(config["AWS:Region"]));
+    }
     return new AmazonS3Client(
         config["CF:AccessKeyId"],
         config["CF:SecretAccessKey"],
@@ -36,23 +34,19 @@ builder.Services.AddSingleton<IAmazonS3>(_ =>
             ServiceURL = config["CF:ServiceURL"],
             ForcePathStyle = true,
             AuthenticationRegion = "auto"
-        }
-    );
+        });
 });
 
 if (provider == "AWS")
-{
     builder.Services.AddScoped<IStorageService, S3StorageService>();
-}
 else
-{
-    builder.Services.AddScoped<IStorageService, R2StorageService>();    
-}
+    builder.Services.AddScoped<IStorageService, R2StorageService>();
 
+// ── Application Services ──────────────────────────────────
 builder.Services.AddScoped<ImageProcessingService>();
 builder.Services.AddHostedService<Worker>();
 
-// Resilience pipeline
+// ── Resilience ────────────────────────────────────────────
 builder.Services.AddResiliencePipeline("storage", pipeline =>
 {
     pipeline
@@ -69,7 +63,7 @@ builder.Services.AddResiliencePipeline("storage", pipeline =>
             MaxRetryAttempts = 3,
             BackoffType = DelayBackoffType.Exponential,
             UseJitter = true,
-            Delay = TimeSpan.FromSeconds(1),
+            Delay = TimeSpan.FromSeconds(1)
         });
 });
 

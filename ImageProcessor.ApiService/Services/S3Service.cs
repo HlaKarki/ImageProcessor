@@ -35,4 +35,33 @@ public class S3Service(
 
         return $"https://{_bucket}.s3.{configuration["AWS:Region"]}.amazonaws.com/{key}";
     }
+    
+    public async Task DeleteJobFilesAsync(string userId, string jobId)
+    {
+        var pipeline = pipelineProvider.GetPipeline("storage");
+        var prefixes = new[] { $"originals/{userId}/{jobId}", $"processed/{userId}/{jobId}/" };
+
+        foreach (var prefix in prefixes)
+        {
+            var listed = await s3.ListObjectsV2Async(new ListObjectsV2Request
+            {
+                BucketName = _bucket,
+                Prefix = prefix
+            });
+
+            if (listed.S3Objects.Count == 0) continue;
+
+            await pipeline.ExecuteAsync(async ct =>
+            {
+                var request = new DeleteObjectsRequest
+                {
+                    BucketName = _bucket,
+                    Objects = listed.S3Objects
+                        .Select(o => new KeyVersion { Key = o.Key })
+                        .ToList()
+                };
+                return await s3.DeleteObjectsAsync(request, ct);
+            });
+        }
+    }
 }

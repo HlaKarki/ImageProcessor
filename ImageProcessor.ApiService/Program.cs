@@ -1,12 +1,15 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using Amazon.S3;
-using ImageProcessor.ApiService.Services;
+using Hangfire;
+using Hangfire.PostgreSql;
 using ImageProcessor.ApiService.Exceptions;
+using ImageProcessor.ApiService.Jobs;
 using ImageProcessor.ApiService.Mappings;
 using ImageProcessor.ApiService.Messaging;
 using ImageProcessor.ApiService.Repositories.Jobs;
 using ImageProcessor.ApiService.Repositories.Storage;
+using ImageProcessor.ApiService.Services;
 using ImageProcessor.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -19,17 +22,12 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add service defaults & Aspire client integrations.
+// ── Aspire ────────────────────────────────────────────────
 builder.AddServiceDefaults();
-
-// Add services to the container.
-builder.Services.AddProblemDetails();
 builder.AddNpgsqlDbContext<AppDbContext>("imageprocessordb");
 builder.AddRabbitMQClient("rabbitmq");
 
-builder.Services.AddScoped<JobMapper>();
-
-// JWT Authentication
+// ── Authentication & Authorization ────────────────────────
 var jwtSecret = builder.Configuration["Jwt:Secret"]!;
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -46,34 +44,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
-builder.Services.AddScoped<AuthService>();
 
-builder.Services.AddHybridCache();
-
-// Add Controllers
+// ── MVC ───────────────────────────────────────────────────
 builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    });
+    .AddJsonOptions(opts =>
+        opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddProblemDetails();
+builder.Services.AddOpenApi();
 
-// Add Repositories
-builder.Services.AddScoped<IJobRepository, JobRepository>();
-
-// Add S3 Client
+// ── Storage ───────────────────────────────────────────────
 var provider = builder.Configuration["Storage:Provider"] ?? "AWS";
 builder.Services.AddSingleton<IAmazonS3>(_ =>
 {
     var config = builder.Configuration;
-
     if (provider == "AWS")
     {
         return new AmazonS3Client(
             config["AWS:AccessKeyId"],
             config["AWS:SecretAccessKey"],
-            Amazon.RegionEndpoint.GetBySystemName(config["AWS:Region"])
-        );    
-    } 
+            Amazon.RegionEndpoint.GetBySystemName(config["AWS:Region"]));
+    }
     return new AmazonS3Client(
         config["CF:AccessKeyId"],
         config["CF:SecretAccessKey"],
@@ -82,24 +72,25 @@ builder.Services.AddSingleton<IAmazonS3>(_ =>
             ServiceURL = config["CF:ServiceURL"],
             ForcePathStyle = true,
             AuthenticationRegion = "auto"
-        }
-    );
+        });
 });
 
 if (provider == "AWS")
-{
     builder.Services.AddScoped<IStorageService, S3Service>();
-}
 else
-{
-    builder.Services.AddScoped<IStorageService, R2Service>();    
-}
+    builder.Services.AddScoped<IStorageService, R2Service>();
 
+// ── Application Services ──────────────────────────────────
+builder.Services.AddScoped<JobMapper>();
+builder.Services.AddScoped<IJobRepository, JobRepository>();
+builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<JobService>();
-
 builder.Services.AddScoped<MessagePublisher>();
 
-// Resilience pipeline
+// ── Caching ───────────────────────────────────────────────
+builder.Services.AddHybridCache();
+
+// ── Resilience ────────────────────────────────────────────
 builder.Services.AddResiliencePipeline("storage", pipeline =>
 {
     pipeline
@@ -116,7 +107,7 @@ builder.Services.AddResiliencePipeline("storage", pipeline =>
             MaxRetryAttempts = 3,
             BackoffType = DelayBackoffType.Exponential,
             UseJitter = true,
-            Delay = TimeSpan.FromSeconds(1),
+            Delay = TimeSpan.FromSeconds(1)
         });
 });
 
@@ -128,19 +119,28 @@ builder.Services.AddResiliencePipeline("messaging", pipeline =>
             MaxRetryAttempts = 3,
             BackoffType = DelayBackoffType.Exponential,
             UseJitter = true,
-            Delay = TimeSpan.FromMilliseconds(700),
+            Delay = TimeSpan.FromMilliseconds(700)
         });
 });
 
-// Exception Handler
+// ── Hangfire ──────────────────────────────────────────────
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(opts =>
+        opts.UseNpgsqlConnection(builder.Configuration.GetConnectionString("imageprocessordb"))
+    )
+);
+builder.Services.AddHangfireServer();
+
+// ── Exception Handling ────────────────────────────────────
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-
+// ─────────────────────────────────────────────────────────
 var app = builder.Build();
 
-// Apply pending migrations on startup
+// ── Startup Tasks ─────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -153,20 +153,32 @@ using (var scope = app.Services.CreateScope())
     await RabbitMQTopology.ConfigureAsync(connection);
 }
 
-// Configure the HTTP request pipeline.
+// ── Cron/Job ────────────────────────────────────────────
+using (var scope = app.Services.CreateScope())
+{
+    var jobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+    jobManager.AddOrUpdate<CleanupJob>(
+        "cleanup-old-jobs",
+        job => job.RunAsync(),
+        Cron.Daily
+    );
+}
+
+// ── Middleware ────────────────────────────────────────────
 app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// ── Endpoints ─────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
+    app.UseHangfireDashboard("/hangfire");
 }
-
-app.MapGet("/", () => "API service is running. Navigate to /weatherforecast to see sample data.");
 
 app.MapDefaultEndpoints();
 app.MapControllers();
+app.MapGet("/", () => "API service is running.");
 
 app.Run();
