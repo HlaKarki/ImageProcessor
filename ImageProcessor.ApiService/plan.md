@@ -314,10 +314,10 @@ Authorization: Bearer <jwt>
 
 ### Phase 5: Storage & CDN (Week 3)
 - [x] Upload processed results to S3
-- [ ] Configure CloudFront distribution
-- [ ] Generate CDN URLs
-- [ ] Implement pre-signed URLs for uploads
-
+- [ ] ~~Configure CloudFront distribution~~ (infrastructure, revisit later)
+- [ ] ~~Generate CDN URLs~~ (revisit after CDN setup)
+- [ ] ~~Implement pre-signed URLs for uploads~~ (revisit later)
+   
 ### Phase 6: Caching (Week 3-4)
 - [ ] Set up Hybrid Cache
 - [ ] Cache job results

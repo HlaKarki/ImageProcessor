@@ -2,10 +2,11 @@ using ImageProcessor.ApiService.Models.DTOs;
 using ImageProcessor.ApiService.Repositories.Jobs;
 using ImageProcessor.Contracts.Messages;
 using ImageProcessor.Data.Models.Domain;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace ImageProcessor.ApiService.Services;
 
-public class JobService(IJobRepository jobs, MessagePublisher publisher)
+public class JobService(IJobRepository jobs, MessagePublisher publisher, HybridCache cache)
 {
     public async Task<JobResponse> CreateAsync(string jobId, string userId, string url, IFormFile file)
     {
@@ -35,15 +36,7 @@ public class JobService(IJobRepository jobs, MessagePublisher publisher)
             job.MimeType)
         );
         
-        return new JobResponse(
-            job.Id,
-            job.UserId,
-            job.Status.ToString(),
-            job.OriginalUrl,
-            job.OriginalFilename,
-            job.FileSize,
-            job.CreatedAt
-        );
+        return MapToResponse(job);
     }
     
     public async Task<JobResponse?> GetByIdAsync(Guid jobId, Guid userId)
@@ -51,29 +44,24 @@ public class JobService(IJobRepository jobs, MessagePublisher publisher)
         var job = await jobs.GetByIdAndUserAsync(jobId, userId);
         if (job is null) return null;
 
-        return new JobResponse(
-            job.Id,
-            job.UserId,
-            job.Status.ToString(),
-            job.OriginalUrl,
-            job.OriginalFilename,
-            job.FileSize,
-            job.CreatedAt
-        );
+        var cacheKey = $"job:{jobId}:{userId}";
+
+        if (job.Status == JobStatus.Completed || job.Status == JobStatus.Error)
+        {
+            return await cache.GetOrCreateAsync(
+                cacheKey,
+                _ => ValueTask.FromResult(MapToResponse(job)),
+                new HybridCacheEntryOptions { Expiration = TimeSpan.FromHours(1) }
+            );
+        }
+
+        return MapToResponse(job);
     }
 
     public async Task<PagedResponse<JobResponse>> GetAllByUserAsync(Guid userId, int page, int pageSize)
     {
         var results = await jobs.GetAllByUserAsync(userId, page, pageSize);
-        var items = results.Items.Select(job => new JobResponse(
-            job.Id,
-            job.UserId,
-            job.Status.ToString(),
-            job.OriginalUrl,
-            job.OriginalFilename,
-            job.FileSize,
-            job.CreatedAt
-        ));
+        var items = results.Items.Select(MapToResponse);
         
         return new PagedResponse<JobResponse>(
             items,
@@ -83,4 +71,14 @@ public class JobService(IJobRepository jobs, MessagePublisher publisher)
             (int)Math.Ceiling((double)results.TotalCount / pageSize)
         );
     }
+    
+    private static JobResponse MapToResponse(Job job) => new (
+        job.Id,
+        job.UserId,
+        job.Status.ToString(),
+        job.OriginalUrl,
+        job.OriginalFilename,
+        job.FileSize,
+        job.CreatedAt
+    );
 }

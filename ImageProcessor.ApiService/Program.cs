@@ -42,6 +42,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<AuthService>();
 
+builder.Services.AddHybridCache();
+
 // Add Controllers
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
