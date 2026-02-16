@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Amazon.S3;
 using ImageProcessor.ApiService.Services;
 using ImageProcessor.ApiService.Exceptions;
+using ImageProcessor.ApiService.Mappings;
 using ImageProcessor.ApiService.Messaging;
 using ImageProcessor.ApiService.Repositories.Jobs;
 using ImageProcessor.ApiService.Repositories.Storage;
@@ -22,6 +23,8 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 builder.AddNpgsqlDbContext<AppDbContext>("imageprocessordb");
 builder.AddRabbitMQClient("rabbitmq");
+
+builder.Services.AddScoped<JobMapper>();
 
 // JWT Authentication
 var jwtSecret = builder.Configuration["Jwt:Secret"]!;
