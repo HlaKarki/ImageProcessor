@@ -18,6 +18,7 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddProblemDetails();
 builder.AddNpgsqlDbContext<AppDbContext>("imageprocessordb");
+builder.AddRabbitMQClient("rabbitmq");
 
 // JWT Authentication
 var jwtSecret = builder.Configuration["Jwt:Secret"]!;

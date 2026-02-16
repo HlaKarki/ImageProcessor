@@ -7,7 +7,9 @@ var rabbitmq = builder.AddRabbitMQ("rabbitmq");
 
 builder.AddProject<Projects.ImageProcessor_ApiService>("apiservice")
     .WithHttpHealthCheck("/health")
+    .WithReference(rabbitmq)
     .WithReference(postgres)
+    .WaitFor(rabbitmq)
     .WaitFor(postgres);
 
 builder.AddProject<Projects.ImageProcessor_Worker>("worker")
