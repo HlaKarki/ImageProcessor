@@ -3,9 +3,11 @@ using System.Text.Json;
 using ImageProcessor.Contracts.Messages;
 using ImageProcessor.Data;
 using ImageProcessor.Data.Models.Domain;
+using ImageProcessor.Worker.Services;
 using Microsoft.EntityFrameworkCore;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using SixLabors.ImageSharp.Processing.Processors;
 
 namespace ImageProcessor.Worker;
 
@@ -42,16 +44,67 @@ public class Worker(
 
             using var scope = scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var storage = scope.ServiceProvider.GetRequiredService<StorageService>();
+            var processor = scope.ServiceProvider.GetRequiredService<ImageProcessingService>();
 
             var job = await db.Jobs.FirstOrDefaultAsync(j => j.Id == message.JobId);
-            if (job is not null)
+            if (job is null)
             {
-                job.Status = JobStatus.Processing;
-                job.StartedAt = DateTime.UtcNow;
-                await db.SaveChangesAsync();
+                logger.LogInformation("Job {jobId} not found, discarding", message.JobId);
+                await channel.BasicNackAsync(ea.DeliveryTag, false, false);
+                return;
             }
+            
+            job.Status = JobStatus.Processing;
+            job.StartedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
 
-            await channel.BasicAckAsync(ea.DeliveryTag, false);
+            try
+            {
+                var originalKey = storage.ExtractKey(message.OriginalUrl);
+                await using var imageStream = await storage.DownloadAsync(originalKey);
+
+                var result = await processor.ProcessAsync(imageStream, job.FileSize);
+
+                var thumbUrls = new Dictionary<string, string>();
+                foreach (var (name, stream) in result.Thumbnails)
+                {
+                    await using (stream)
+                    {
+                        var key = $"processed/{message.UserId}/{message.JobId}/{name}.webp";
+                        thumbUrls[name] = await storage.UploadAsync(stream, key, "image/webp");
+                    }
+                }
+
+                var optimizedUrls = new Dictionary<string, string>();
+                foreach (var (format, stream) in result.Optimized)
+                {
+                    await using (stream)
+                    {
+                        var key = $"processed/{message.UserId}/{message.JobId}/optimized.{format}";
+                        optimizedUrls[format] = await storage.UploadAsync(stream, key, "image/webp");
+                    }
+                }
+
+                job.Thumbnails = JsonDocument.Parse(JsonSerializer.Serialize(thumbUrls));
+                job.Optimized = JsonDocument.Parse(JsonSerializer.Serialize(optimizedUrls));
+                job.Metadata = JsonDocument.Parse(JsonSerializer.Serialize(result.Metadata));
+                job.Status = JobStatus.Completed;
+                job.CompletedAt = DateTime.UtcNow;
+                await db.SaveChangesAsync();
+
+                logger.LogInformation("Job {jobId} completed", message.JobId);
+                await channel.BasicAckAsync(ea.DeliveryTag, false);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error processing job {jobId}", message.JobId);
+                job.Status = JobStatus.Error;
+                job.ErrorMessage = ex.Message;
+                job.RetryCount++;
+                await db.SaveChangesAsync();
+                await channel.BasicNackAsync(ea.DeliveryTag, false, false);
+            }
         };
             
         await channel.BasicConsumeAsync(
