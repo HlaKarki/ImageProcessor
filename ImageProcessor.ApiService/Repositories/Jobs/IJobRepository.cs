@@ -1,4 +1,4 @@
-using ImageProcessor.ApiService.Models.Domain;
+using ImageProcessor.Data.Models;
 
 namespace ImageProcessor.ApiService.Repositories.Jobs;
 

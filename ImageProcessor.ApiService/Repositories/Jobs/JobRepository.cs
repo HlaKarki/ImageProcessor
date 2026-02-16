@@ -1,5 +1,5 @@
-using ImageProcessor.ApiService.Data;
-using ImageProcessor.ApiService.Models.Domain;
+using ImageProcessor.Data;
+using ImageProcessor.Data.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace ImageProcessor.ApiService.Repositories.Jobs;

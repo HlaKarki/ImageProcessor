@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ImageProcessor.Contracts\ImageProcessor.Contracts.csproj" />
+    <ProjectReference Include="..\ImageProcessor.Data\ImageProcessor.Data.csproj" />
     <ProjectReference Include="..\ImageProcessor.ServiceDefaults\ImageProcessor.ServiceDefaults.csproj" />
   </ItemGroup>
 

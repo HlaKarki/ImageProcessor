@@ -1,4 +1,4 @@
-namespace ImageProcessor.ApiService.Models.Domain;
+namespace ImageProcessor.Data.Models;
 using System.Text.Json;
 
 public enum JobStatus { Pending, Processing, Completed, Finished, Error }

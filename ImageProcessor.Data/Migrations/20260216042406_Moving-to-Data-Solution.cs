@@ -4,10 +4,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace ImageProcessor.ApiService.Migrations
+namespace ImageProcessor.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class MovingtoDataSolution : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

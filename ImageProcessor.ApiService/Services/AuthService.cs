@@ -1,9 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using ImageProcessor.ApiService.Data;
-using ImageProcessor.ApiService.Models.Domain;
 using ImageProcessor.ApiService.Models.DTOs;
+using ImageProcessor.Data;
+using ImageProcessor.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 

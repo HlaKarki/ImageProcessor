@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Worker", "Im
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Contracts", "ImageProcessor.Contracts\ImageProcessor.Contracts.csproj", "{678CCA06-3FA8-4348-9204-00FE52949FE1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Data", "ImageProcessor.Data\ImageProcessor.Data.csproj", "{8CC04658-82BD-43EB-A2DC-799C8B48FC30}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,18 @@ Global
 		{678CCA06-3FA8-4348-9204-00FE52949FE1}.Release|x64.Build.0 = Release|Any CPU
 		{678CCA06-3FA8-4348-9204-00FE52949FE1}.Release|x86.ActiveCfg = Release|Any CPU
 		{678CCA06-3FA8-4348-9204-00FE52949FE1}.Release|x86.Build.0 = Release|Any CPU
+		{8CC04658-82BD-43EB-A2DC-799C8B48FC30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CC04658-82BD-43EB-A2DC-799C8B48FC30}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CC04658-82BD-43EB-A2DC-799C8B48FC30}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8CC04658-82BD-43EB-A2DC-799C8B48FC30}.Debug|x64.Build.0 = Debug|Any CPU
+		{8CC04658-82BD-43EB-A2DC-799C8B48FC30}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8CC04658-82BD-43EB-A2DC-799C8B48FC30}.Debug|x86.Build.0 = Debug|Any CPU
+		{8CC04658-82BD-43EB-A2DC-799C8B48FC30}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CC04658-82BD-43EB-A2DC-799C8B48FC30}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CC04658-82BD-43EB-A2DC-799C8B48FC30}.Release|x64.ActiveCfg = Release|Any CPU
+		{8CC04658-82BD-43EB-A2DC-799C8B48FC30}.Release|x64.Build.0 = Release|Any CPU
+		{8CC04658-82BD-43EB-A2DC-799C8B48FC30}.Release|x86.ActiveCfg = Release|Any CPU
+		{8CC04658-82BD-43EB-A2DC-799C8B48FC30}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
