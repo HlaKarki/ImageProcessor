@@ -3,6 +3,9 @@ using ImageProcessor.Data;
 using ImageProcessor.Worker;
 using ImageProcessor.Worker.Repositories;
 using ImageProcessor.Worker.Services;
+using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.AddServiceDefaults();
@@ -48,6 +51,27 @@ else
 
 builder.Services.AddScoped<ImageProcessingService>();
 builder.Services.AddHostedService<Worker>();
+
+// Resilience pipeline
+builder.Services.AddResiliencePipeline("storage", pipeline =>
+{
+    pipeline
+        .AddTimeout(TimeSpan.FromSeconds(30))
+        .AddCircuitBreaker(new CircuitBreakerStrategyOptions
+        {
+            FailureRatio = 0.5,
+            MinimumThroughput = 5,
+            SamplingDuration = TimeSpan.FromSeconds(30),
+            BreakDuration = TimeSpan.FromSeconds(30)
+        })
+        .AddRetry(new RetryStrategyOptions
+        {
+            MaxRetryAttempts = 3,
+            BackoffType = DelayBackoffType.Exponential,
+            UseJitter = true,
+            Delay = TimeSpan.FromSeconds(1),
+        });
+});
 
 var host = builder.Build();
 host.Run();

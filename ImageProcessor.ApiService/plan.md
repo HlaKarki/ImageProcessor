@@ -320,9 +320,8 @@ Authorization: Bearer <jwt>
    
 ### Phase 6: Caching (Week 3-4)
 - [x] Set up Hybrid Cache
-- [ ] Cache job results
-- [ ] Implement cache invalidation
-- [ ] Add cache hit/miss metrics
+- [x] Cache job results
+- [x] Implement cache invalidation
 
 ### Phase 7: Resilience (Week 4)
 - [ ] Add retry policies for S3 operations

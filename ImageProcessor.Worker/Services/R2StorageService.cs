@@ -1,10 +1,16 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using ImageProcessor.Worker.Repositories;
+using Polly.Registry;
 
 namespace ImageProcessor.Worker.Services;
 
-public class R2StorageService(IAmazonS3 s3, IConfiguration config, ILogger<R2StorageService> logger) : IStorageService
+public class R2StorageService(
+    IAmazonS3 s3,
+    IConfiguration config,
+    ILogger<R2StorageService> logger,
+    ResiliencePipelineProvider<string> pipelineProvider
+) : IStorageService
 {
     private readonly string _bucket = config["CF:BucketName"]!;
     private readonly string _serviceUrl = config["CF:ServiceURL"]!;
@@ -18,25 +24,36 @@ public class R2StorageService(IAmazonS3 s3, IConfiguration config, ILogger<R2Sto
     public async Task<Stream> DownloadAsync(string key)
     {
         logger.LogInformation("Downloading {key}", key);
-        var response = await s3.GetObjectAsync(_bucket, key);
-        var ms = new MemoryStream();
-        await response.ResponseStream.CopyToAsync(ms);
-        ms.Position = 0;
-        return ms;
+        var pipeline = pipelineProvider.GetPipeline("storage");
+
+        return await pipeline.ExecuteAsync(async ct =>
+        {
+            var response = await s3.GetObjectAsync(_bucket, key, ct);
+            var ms = new MemoryStream();
+            await response.ResponseStream.CopyToAsync(ms, ct);
+            ms.Position = 0;
+            return ms;
+        });
     }
 
     public async Task<string> UploadAsync(Stream stream, string key, string contentType)
     {
         logger.LogInformation("Uploading {Key}", key);
-        var request = new PutObjectRequest
+        var pipeline = pipelineProvider.GetPipeline("storage");
+
+        await pipeline.ExecuteAsync(async ct =>
         {
-            BucketName = _bucket,
-            Key = key,
-            InputStream = stream,
-            ContentType = contentType,
-            UseChunkEncoding = false
-        };
-        await s3.PutObjectAsync(request);
+            var request = new PutObjectRequest
+            {
+                BucketName = _bucket,
+                Key = key,
+                InputStream = stream,
+                ContentType = contentType,
+                UseChunkEncoding = false
+            };
+            await s3.PutObjectAsync(request, ct);
+        });
+        
         return $"{_serviceUrl}/{_bucket}/{key}";
     }
 }

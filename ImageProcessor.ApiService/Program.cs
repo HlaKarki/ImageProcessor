@@ -11,6 +11,9 @@ using ImageProcessor.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
 using RabbitMQ.Client;
 using Scalar.AspNetCore;
 
@@ -95,6 +98,27 @@ else
 builder.Services.AddScoped<JobService>();
 
 builder.Services.AddScoped<MessagePublisher>();
+
+// Resilience pipeline
+builder.Services.AddResiliencePipeline("storage", pipeline =>
+{
+    pipeline
+        .AddTimeout(TimeSpan.FromSeconds(60))
+        .AddCircuitBreaker(new CircuitBreakerStrategyOptions
+        {
+            FailureRatio = 0.5,
+            MinimumThroughput = 5,
+            SamplingDuration = TimeSpan.FromSeconds(30),
+            BreakDuration = TimeSpan.FromSeconds(30)
+        })
+        .AddRetry(new RetryStrategyOptions
+        {
+            MaxRetryAttempts = 3,
+            BackoffType = DelayBackoffType.Exponential,
+            UseJitter = true,
+            Delay = TimeSpan.FromSeconds(1),
+        });
+});
 
 // Exception Handler
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
