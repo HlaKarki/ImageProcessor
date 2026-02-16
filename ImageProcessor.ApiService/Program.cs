@@ -4,10 +4,12 @@ using Amazon.S3;
 using ImageProcessor.ApiService.Services;
 using ImageProcessor.ApiService.Data;
 using ImageProcessor.ApiService.Exceptions;
+using ImageProcessor.ApiService.Messaging;
 using ImageProcessor.ApiService.Repositories.Jobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using RabbitMQ.Client;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -67,6 +69,8 @@ builder.Services.AddScoped<S3Service>();
 
 builder.Services.AddScoped<JobService>();
 
+builder.Services.AddScoped<MessagePublisher>();
+
 // Exception Handler
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
@@ -80,6 +84,12 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var connection = scope.ServiceProvider.GetRequiredService<IConnection>();
+    await RabbitMQTopology.ConfigureAsync(connection);
 }
 
 // Configure the HTTP request pipeline.

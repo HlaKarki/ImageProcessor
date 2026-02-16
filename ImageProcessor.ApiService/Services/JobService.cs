@@ -1,10 +1,11 @@
 using ImageProcessor.ApiService.Models.Domain;
 using ImageProcessor.ApiService.Models.DTOs;
 using ImageProcessor.ApiService.Repositories.Jobs;
+using ImageProcessor.Contracts.Messages;
 
 namespace ImageProcessor.ApiService.Services;
 
-public class JobService(IJobRepository jobs)
+public class JobService(IJobRepository jobs, MessagePublisher publisher)
 {
     public async Task<JobResponse> CreateAsync(string jobId, string userId, string url, IFormFile file)
     {
@@ -25,6 +26,15 @@ public class JobService(IJobRepository jobs)
         };
         
         await jobs.AddAsync(job);
+
+        await publisher.PublishAsync(new ImageJobMessage(
+            job.Id,
+            job.UserId,
+            job.OriginalUrl,
+            job.OriginalFilename,
+            job.MimeType)
+        );
+        
         return new JobResponse(
             job.Id,
             job.UserId,
@@ -73,6 +83,4 @@ public class JobService(IJobRepository jobs)
             (int)Math.Ceiling((double)results.TotalCount / pageSize)
         );
     }
-    
-    private async Task<Job> AddAsync(Job job)  => await jobs.AddAsync(job);
 }

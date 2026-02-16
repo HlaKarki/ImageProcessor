@@ -299,7 +299,7 @@ Authorization: Bearer <jwt>
 - [x] Add structured logging via ILogger<T>
 
 ### Phase 3: Message Queue (Week 2)
-- [ ] Set up RabbitMQ in Aspire
+- [x] Set up RabbitMQ in Aspire
 - [ ] Implement message publisher in API
 - [ ] Implement message consumer in Worker
 - [ ] Add job status updates
