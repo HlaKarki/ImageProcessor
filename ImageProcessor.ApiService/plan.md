@@ -319,7 +319,7 @@ Authorization: Bearer <jwt>
 - [ ] ~~Implement pre-signed URLs for uploads~~ (revisit later)
    
 ### Phase 6: Caching (Week 3-4)
-- [ ] Set up Hybrid Cache
+- [x] Set up Hybrid Cache
 - [ ] Cache job results
 - [ ] Implement cache invalidation
 - [ ] Add cache hit/miss metrics
