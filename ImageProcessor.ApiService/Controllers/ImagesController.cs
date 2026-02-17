@@ -4,6 +4,7 @@ using ImageProcessor.ApiService.Repositories.Storage;
 using ImageProcessor.ApiService.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace ImageProcessor.ApiService.Controllers;
 
@@ -13,6 +14,7 @@ namespace ImageProcessor.ApiService.Controllers;
 public class ImagesController(IStorageService storage, JobService jobService) : ControllerBase
 {
     [HttpPost("upload")]
+    [EnableRateLimiting("upload")]
     public async Task<IActionResult> Upload([FromForm] ImageUploadRequest request)
     {
         // validate the file extension and mime type
@@ -42,6 +44,7 @@ public class ImagesController(IStorageService storage, JobService jobService) : 
     }
 
     [HttpGet("{jobId}")]
+    [EnableRateLimiting("read")]
     public async Task<IActionResult> Get([FromRoute] Guid jobId)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -51,6 +54,7 @@ public class ImagesController(IStorageService storage, JobService jobService) : 
     }
 
     [HttpGet("")]
+    [EnableRateLimiting("read")]
     public async Task<IActionResult> Get([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

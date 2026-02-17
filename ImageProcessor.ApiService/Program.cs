@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Amazon.S3;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -93,6 +95,68 @@ builder.Services.AddScoped<MessagePublisher>();
 // ── Caching ───────────────────────────────────────────────
 builder.Services.AddHybridCache();
 
+// ── Rate Limiting ─────────────────────────────────────────
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.OnRejected = async (context, ct) =>
+    {
+        context.HttpContext.Response.Headers.RetryAfter = "60";
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            title = "Too Many Requests",
+            status = 429,
+            detail = "You have exceed the rate limit. Please try again later."
+        }, ct);
+    };
+    
+    // Auth endpoints - by IP
+    options.AddPolicy("auth", httpContext =>
+    {
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 10,
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }
+        );
+    });
+    
+    // Upload endpoint - by user ID
+    options.AddPolicy("upload", httpContext =>
+    {
+        return RateLimitPartition.GetTokenBucketLimiter(
+            partitionKey: httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
+            factory: _ => new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = 20,
+                ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+                TokensPerPeriod = 20,
+                AutoReplenishment = true
+            }
+        );
+    });
+    
+    // Read endpoints - by user ID
+    options.AddPolicy("read", httpContext =>
+    {
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 100,
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }
+        );
+    });
+});
+
 // ── Resilience ────────────────────────────────────────────
 builder.Services.AddResiliencePipeline("storage", pipeline =>
 {
@@ -171,6 +235,7 @@ using (var scope = app.Services.CreateScope())
 app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 // ── Endpoints ─────────────────────────────────────────────
 if (app.Environment.IsDevelopment())

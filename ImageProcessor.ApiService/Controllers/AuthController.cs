@@ -1,6 +1,7 @@
 using ImageProcessor.ApiService.Models.DTOs;
 using ImageProcessor.ApiService.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace ImageProcessor.ApiService.Controllers;
 
@@ -9,6 +10,7 @@ namespace ImageProcessor.ApiService.Controllers;
 public class AuthController(AuthService auth) : ControllerBase
 {
     [HttpPost("register")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register(RegisterRequest request)
     {
         var result = await auth.Register(request);
@@ -16,6 +18,7 @@ public class AuthController(AuthService auth) : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Login(LoginRequest login)
     {
         var result = await auth.Login(login);
