@@ -6,9 +6,11 @@ using Amazon.S3;
 using Hangfire;
 using Hangfire.PostgreSql;
 using ImageProcessor.ApiService.Exceptions;
+using ImageProcessor.ApiService.Hangfire;
 using ImageProcessor.ApiService.Jobs;
 using ImageProcessor.ApiService.Mappings;
 using ImageProcessor.ApiService.Messaging;
+using ImageProcessor.ApiService.Middleware;
 using ImageProcessor.ApiService.OpenApi;
 using ImageProcessor.ApiService.Repositories.Jobs;
 using ImageProcessor.ApiService.Repositories.Storage;
@@ -213,6 +215,14 @@ builder.Services.AddHangfire(config => config
 );
 builder.Services.AddHangfireServer();
 
+// ── HSTS ──────────────────────────────────────────────
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;
+    options.Preload = true;
+});
+
 // ── Exception Handling ────────────────────────────────────
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
@@ -245,6 +255,13 @@ using (var scope = app.Services.CreateScope())
 
 // ── Middleware ────────────────────────────────────────────
 app.UseExceptionHandler();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+    app.UseHsts();
+}
+
+app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
@@ -262,6 +279,9 @@ if (app.Environment.IsDevelopment())
 app.MapDefaultEndpoints();
 app.MapControllers();
 app.MapGet("/", () => "API service is running.");
-app.UseHangfireDashboard("/hangfire");
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = [new HangfireAuthorizationFilter()]
+});
 
 app.Run();
