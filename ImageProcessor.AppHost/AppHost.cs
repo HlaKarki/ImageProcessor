@@ -1,5 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.AddDockerComposeEnvironment("imageprocessor");
+
 var postgres = builder.AddPostgres("postgres")
     .WithDataVolume()
     .AddDatabase("imageprocessordb");

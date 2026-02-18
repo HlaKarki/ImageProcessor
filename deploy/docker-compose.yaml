@@ -1,0 +1,140 @@
+services:
+  imageprocessor-dashboard:
+    image: "mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest"
+    ports:
+      - "18888"
+    expose:
+      - "18889"
+      - "18890"
+    networks:
+      - "aspire"
+    restart: "always"
+  postgres:
+    image: "docker.io/library/postgres:17.6"
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: "scram-sha-256"
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    expose:
+      - "5432"
+    volumes:
+      - type: "volume"
+        target: "/var/lib/postgresql/data"
+        source: "imageprocessor.apphost-bfde60533e-postgres-data"
+        read_only: false
+    networks:
+      - "aspire"
+  rabbitmq:
+    image: "docker.io/library/rabbitmq:4.2"
+    environment:
+      RABBITMQ_DEFAULT_USER: "guest"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD}"
+    expose:
+      - "5672"
+    volumes:
+      - type: "volume"
+        target: "/var/lib/rabbitmq"
+        source: "imageprocessor.apphost-bfde60533e-rabbitmq-data"
+        read_only: false
+    networks:
+      - "aspire"
+  apiservice:
+    image: "${APISERVICE_IMAGE}"
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      ASPNETCORE_ENVIRONMENT: "Production"
+      HTTP_PORTS: "${APISERVICE_PORT}"
+      ConnectionStrings__rabbitmq: "amqp://guest:${RABBITMQ_PASSWORD}@rabbitmq:5672"
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: "guest"
+      RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
+      RABBITMQ_URI: "amqp://guest:${RABBITMQ_PASSWORD}@rabbitmq:5672"
+      ConnectionStrings__imageprocessordb: "Host=postgres;Port=5432;Username=postgres;Password=${POSTGRES_PASSWORD};Database=imageprocessordb"
+      IMAGEPROCESSORDB_HOST: "postgres"
+      IMAGEPROCESSORDB_PORT: "5432"
+      IMAGEPROCESSORDB_USERNAME: "postgres"
+      IMAGEPROCESSORDB_PASSWORD: "${POSTGRES_PASSWORD}"
+      IMAGEPROCESSORDB_URI: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/imageprocessordb"
+      IMAGEPROCESSORDB_JDBCCONNECTIONSTRING: "jdbc:postgresql://postgres:5432/imageprocessordb"
+      IMAGEPROCESSORDB_DATABASENAME: "imageprocessordb"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://imageprocessor-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "apiservice"
+      Jwt__Secret: "${JWT_SECRET}"
+      Jwt__Issuer: "${JWT_ISSUER}"
+      Jwt__Audience: "${JWT_AUDIENCE}"
+      Jwt__ExpiryMinutes: "${JWT_EXPIRY_MINUTES}"
+      Storage__Provider: "${STORAGE_PROVIDER}"
+      AWS__AccessKeyId: "${AWS_ACCESS_KEY_ID}"
+      AWS__SecretAccessKey: "${AWS_SECRET_ACCESS_KEY}"
+      AWS__BucketName: "${AWS_BUCKET_NAME}"
+      AWS__Region: "${AWS_REGION}"
+      CF__AccessKeyId: "${CF_ACCESS_KEY_ID}"
+      CF__SecretAccessKey: "${CF_SECRET_ACCESS_KEY}"
+      CF__BucketName: "${CF_BUCKET_NAME}"
+      CF__Region: "${CF_REGION}"
+      CF__ServiceURL: "${CF_SERVICE_URL}"
+      Cors__AllowedOrigins: "${CORS_ALLOWED_ORIGINS}"
+    ports:
+      - "${APISERVICE_PORT}:${APISERVICE_PORT}"
+    depends_on:
+      rabbitmq:
+        condition: "service_started"
+      postgres:
+        condition: "service_started"
+    networks:
+      - "aspire"
+  worker:
+    image: "${WORKER_IMAGE}"
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ConnectionStrings__rabbitmq: "amqp://guest:${RABBITMQ_PASSWORD}@rabbitmq:5672"
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: "guest"
+      RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
+      RABBITMQ_URI: "amqp://guest:${RABBITMQ_PASSWORD}@rabbitmq:5672"
+      ConnectionStrings__imageprocessordb: "Host=postgres;Port=5432;Username=postgres;Password=${POSTGRES_PASSWORD};Database=imageprocessordb"
+      IMAGEPROCESSORDB_HOST: "postgres"
+      IMAGEPROCESSORDB_PORT: "5432"
+      IMAGEPROCESSORDB_USERNAME: "postgres"
+      IMAGEPROCESSORDB_PASSWORD: "${POSTGRES_PASSWORD}"
+      IMAGEPROCESSORDB_URI: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/imageprocessordb"
+      IMAGEPROCESSORDB_JDBCCONNECTIONSTRING: "jdbc:postgresql://postgres:5432/imageprocessordb"
+      IMAGEPROCESSORDB_DATABASENAME: "imageprocessordb"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://imageprocessor-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "worker"
+      Storage__Provider: "${STORAGE_PROVIDER}"
+      AWS__AccessKeyId: "${AWS_ACCESS_KEY_ID}"
+      AWS__SecretAccessKey: "${AWS_SECRET_ACCESS_KEY}"
+      AWS__BucketName: "${AWS_BUCKET_NAME}"
+      AWS__Region: "${AWS_REGION}"
+      CF__AccessKeyId: "${CF_ACCESS_KEY_ID}"
+      CF__SecretAccessKey: "${CF_SECRET_ACCESS_KEY}"
+      CF__BucketName: "${CF_BUCKET_NAME}"
+      CF__Region: "${CF_REGION}"
+      CF__ServiceURL: "${CF_SERVICE_URL}"
+    depends_on:
+      rabbitmq:
+        condition: "service_started"
+      postgres:
+        condition: "service_started"
+    networks:
+      - "aspire"
+networks:
+  aspire:
+    driver: "bridge"
+volumes:
+  imageprocessor.apphost-bfde60533e-postgres-data:
+    driver: "local"
+  imageprocessor.apphost-bfde60533e-rabbitmq-data:
+    driver: "local"
