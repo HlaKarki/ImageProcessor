@@ -15,6 +15,10 @@ public class ImagesController(IStorageService storage, JobService jobService) : 
 {
     [HttpPost("upload")]
     [EnableRateLimiting("upload")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Upload([FromForm] ImageUploadRequest request)
     {
         // validate the file extension and mime type
@@ -45,6 +49,10 @@ public class ImagesController(IStorageService storage, JobService jobService) : 
 
     [HttpGet("{jobId}")]
     [EnableRateLimiting("read")]
+    [ProducesResponseType<JobResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Get([FromRoute] Guid jobId)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -55,6 +63,9 @@ public class ImagesController(IStorageService storage, JobService jobService) : 
 
     [HttpGet("")]
     [EnableRateLimiting("read")]
+    [ProducesResponseType<PagedResponse<JobResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Get([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

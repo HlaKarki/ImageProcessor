@@ -9,6 +9,7 @@ using ImageProcessor.ApiService.Exceptions;
 using ImageProcessor.ApiService.Jobs;
 using ImageProcessor.ApiService.Mappings;
 using ImageProcessor.ApiService.Messaging;
+using ImageProcessor.ApiService.OpenApi;
 using ImageProcessor.ApiService.Repositories.Jobs;
 using ImageProcessor.ApiService.Repositories.Storage;
 using ImageProcessor.ApiService.Services;
@@ -17,6 +18,7 @@ using ImageProcessor.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
@@ -55,7 +57,17 @@ builder.Services.AddControllers()
     .AddJsonOptions(opts =>
         opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+    options.AddDocumentTransformer((document, context, ct) =>
+    {
+        document.Info.Title = "ImageProcessor API";
+        document.Info.Description = "Distributed image processing pipeline built with .NET Aspire";
+        document.Info.Version = "v1";
+        return Task.CompletedTask;
+    });
+});
 
 // ── Storage ───────────────────────────────────────────────
 var provider = builder.Configuration["Storage:Provider"] ?? "AWS";
@@ -241,12 +253,15 @@ app.UseRateLimiter();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.MapScalarApiReference();
-    app.UseHangfireDashboard("/hangfire");
+    app.MapScalarApiReference(options => options
+        .WithTitle("Image Processor API")
+        .AddPreferredSecuritySchemes("Bearer")
+    );
 }
 
 app.MapDefaultEndpoints();
 app.MapControllers();
 app.MapGet("/", () => "API service is running.");
+app.UseHangfireDashboard("/hangfire");
 
 app.Run();
