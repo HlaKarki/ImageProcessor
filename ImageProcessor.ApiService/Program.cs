@@ -36,7 +36,9 @@ builder.AddNpgsqlDbContext<AppDbContext>("imageprocessordb");
 builder.AddRabbitMQClient("rabbitmq");
 
 // ── Authentication & Authorization ────────────────────────
-var jwtSecret = builder.Configuration["Jwt:Secret"]!;
+var jwtSecret = builder.Configuration["Jwt:Secret"] 
+    ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -227,7 +229,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("ProductionPolicy", policy =>
     {
-        policy.WithOrigins("https://yourdomain.com")
+        policy.WithOrigins(builder.Configuration["Cors:AllowedOrigins"]?.Split(';') ?? Array.Empty<string>()) 
             .AllowAnyHeader()
             .AllowAnyMethod()
             .DisallowCredentials();
@@ -266,17 +268,18 @@ using (var scope = app.Services.CreateScope())
 
 // ── Middleware ────────────────────────────────────────────
 app.UseExceptionHandler();
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
     app.UseHsts();
 }
 
-app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseRateLimiter();
 app.UseCors("ProductionPolicy");
+app.UseRateLimiter();
 
 // ── Endpoints ─────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
