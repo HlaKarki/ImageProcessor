@@ -20,7 +20,6 @@ using ImageProcessor.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
@@ -62,7 +61,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
-    options.AddDocumentTransformer((document, context, ct) =>
+    options.AddDocumentTransformer((document, _, _) =>
     {
         document.Info.Title = "ImageProcessor API";
         document.Info.Description = "Distributed image processing pipeline built with .NET Aspire";
@@ -215,12 +214,24 @@ builder.Services.AddHangfire(config => config
 );
 builder.Services.AddHangfireServer();
 
-// ── HSTS ──────────────────────────────────────────────
+// ── HSTS ──────────────────────────────────────────────────
 builder.Services.AddHsts(options =>
 {
     options.MaxAge = TimeSpan.FromDays(365);
     options.IncludeSubDomains = true;
     options.Preload = true;
+});
+
+// ── CORS Policy ───────────────────────────────────────────
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ProductionPolicy", policy =>
+    {
+        policy.WithOrigins("https://yourdomain.com")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .DisallowCredentials();
+    });
 });
 
 // ── Exception Handling ────────────────────────────────────
@@ -265,6 +276,7 @@ app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
+app.UseCors("ProductionPolicy");
 
 // ── Endpoints ─────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
