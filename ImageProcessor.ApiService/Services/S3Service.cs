@@ -12,6 +12,7 @@ public class S3Service(
 ) : IStorageService
 {
     private readonly string _bucket = configuration["AWS:BucketName"]!;
+    private readonly string _region = configuration["AWS:Region"]!;
 
     public async Task<string> UploadAsync(IFormFile file, string userId, string jobId)
     {
@@ -33,7 +34,21 @@ public class S3Service(
             return await s3.PutObjectAsync(request, ct);
         });
 
-        return $"https://{_bucket}.s3.{configuration["AWS:Region"]}.amazonaws.com/{key}";
+        return $"https://{_bucket}.s3.{_region}.amazonaws.com/{key}";
+    }
+
+    public string GetReadUrl(string objectUrlOrKey, TimeSpan ttl)
+    {
+        var key = ExtractKey(objectUrlOrKey);
+        var request = new GetPreSignedUrlRequest
+        {
+            BucketName = _bucket,
+            Key = key,
+            Verb = HttpVerb.GET,
+            Expires = DateTime.UtcNow.Add(ttl)
+        };
+
+        return s3.GetPreSignedURL(request);
     }
     
     public async Task DeleteJobFilesAsync(string userId, string jobId)
@@ -63,5 +78,22 @@ public class S3Service(
                 return await s3.DeleteObjectsAsync(request, ct);
             });
         }
+    }
+
+    private string ExtractKey(string objectUrlOrKey)
+    {
+        if (!Uri.TryCreate(objectUrlOrKey, UriKind.Absolute, out var uri))
+        {
+            return objectUrlOrKey.TrimStart('/');
+        }
+
+        var path = uri.AbsolutePath.TrimStart('/');
+        var bucketPathPrefix = $"{_bucket}/";
+        if (path.StartsWith(bucketPathPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return path[bucketPathPrefix.Length..];
+        }
+
+        return path;
     }
 }

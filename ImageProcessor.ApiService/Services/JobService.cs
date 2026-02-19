@@ -2,6 +2,7 @@ using System.Diagnostics;
 using ImageProcessor.ApiService.Mappings;
 using ImageProcessor.ApiService.Models.DTOs;
 using ImageProcessor.ApiService.Repositories.Jobs;
+using ImageProcessor.ApiService.Repositories.Storage;
 using ImageProcessor.ApiService.Telemetry;
 using ImageProcessor.Contracts.Messages;
 using ImageProcessor.Data.Models.Domain;
@@ -12,11 +13,17 @@ namespace ImageProcessor.ApiService.Services;
 public class JobService(
     IJobRepository jobs,
     MessagePublisher publisher,
+    IStorageService storage,
     HybridCache cache,
     JobMapper mapper,
+    IConfiguration configuration,
     ILogger<JobService> logger
 )
 {
+    private readonly TimeSpan _readUrlTtl = TimeSpan.FromMinutes(
+        Math.Clamp(configuration.GetValue<int?>("Storage:ReadUrlExpiryMinutes") ?? 10, 1, 60)
+    );
+
     public async Task<JobResponse> CreateAsync(string jobId, string userId, string url, IFormFile file)
     {
         using var activity = ApiTelemetry.ActivitySource.StartActivity("job.create");
@@ -63,7 +70,7 @@ public class JobService(
             ApiTelemetry.JobsCreated.Add(1, new TagList{ { "user.id", userId } });
             logger.LogInformation("Job {jobid} created and queued", jobId);
             
-            return mapper.ToResponse(job);   
+            return WithSignedUrls(mapper.ToResponse(job));
         }
     }
     
@@ -82,7 +89,7 @@ public class JobService(
                })
               )
         {
-            return await cache.GetOrCreateAsync(
+            var cached = await cache.GetOrCreateAsync(
                 cacheKey,
                 async _ =>
                 {
@@ -94,6 +101,8 @@ public class JobService(
                 },
                 new HybridCacheEntryOptions { Expiration = TimeSpan.FromSeconds(30) }
             );
+
+            return cached is null ? null : WithSignedUrls(cached);
         }
     }
 
@@ -113,7 +122,7 @@ public class JobService(
                })
               )
         {
-            return await cache.GetOrCreateAsync(
+            var cached = await cache.GetOrCreateAsync(
                 cacheKey,
                 async _ =>
                 {
@@ -133,6 +142,53 @@ public class JobService(
                 new HybridCacheEntryOptions { Expiration = TimeSpan.FromHours(1) },
                 tags: [$"user-jobs:{userId}"]
             );
+
+            return cached with
+            {
+                Items = cached.Items.Select(WithSignedUrls).ToList()
+            };
+        }
+    }
+
+    private JobResponse WithSignedUrls(JobResponse response)
+    {
+        var signedOriginal = TrySign(response.OriginalUrl, "original_url", response.Id);
+
+        return response with
+        {
+            OriginalUrl = signedOriginal,
+            Thumbnails = TrySignDictionary(response.Thumbnails, "thumbnails", response.Id),
+            Optimized = TrySignDictionary(response.Optimized, "optimized", response.Id)
+        };
+    }
+
+    private Dictionary<string, string>? TrySignDictionary(
+        Dictionary<string, string>? entries,
+        string field,
+        Guid jobId
+    )
+    {
+        if (entries is null)
+        {
+            return null;
+        }
+
+        return entries.ToDictionary(
+            entry => entry.Key,
+            entry => TrySign(entry.Value, $"{field}.{entry.Key}", jobId)
+        );
+    }
+
+    private string TrySign(string url, string field, Guid jobId)
+    {
+        try
+        {
+            return storage.GetReadUrl(url, _readUrlTtl);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to sign {Field} for job {JobId}", field, jobId);
+            return url;
         }
     }
 }

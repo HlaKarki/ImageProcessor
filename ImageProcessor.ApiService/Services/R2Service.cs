@@ -12,6 +12,7 @@ public class R2Service(
 ) : IStorageService
 {
     private readonly string _bucket = configuration["CF:BucketName"]!;
+    private readonly string _serviceUrl = configuration["CF:ServiceURL"]!;
 
     public async Task<string> UploadAsync(IFormFile file, string userId, string jobId)
     {
@@ -33,7 +34,21 @@ public class R2Service(
             return await s3.PutObjectAsync(request, ct);
         });
 
-        return $"{configuration["CF:ServiceURL"]}/{_bucket}/{key}";
+        return $"{_serviceUrl}/{_bucket}/{key}";
+    }
+
+    public string GetReadUrl(string objectUrlOrKey, TimeSpan ttl)
+    {
+        var key = ExtractKey(objectUrlOrKey);
+        var request = new GetPreSignedUrlRequest
+        {
+            BucketName = _bucket,
+            Key = key,
+            Verb = HttpVerb.GET,
+            Expires = DateTime.UtcNow.Add(ttl)
+        };
+
+        return s3.GetPreSignedURL(request);
     }
 
     public async Task DeleteJobFilesAsync(string userId, string jobId)
@@ -63,5 +78,22 @@ public class R2Service(
                 return await s3.DeleteObjectsAsync(request, ct);
             });
         }
+    }
+
+    private string ExtractKey(string objectUrlOrKey)
+    {
+        if (!Uri.TryCreate(objectUrlOrKey, UriKind.Absolute, out var uri))
+        {
+            return objectUrlOrKey.TrimStart('/');
+        }
+
+        var path = uri.AbsolutePath.TrimStart('/');
+        var bucketPathPrefix = $"{_bucket}/";
+        if (path.StartsWith(bucketPathPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return path[bucketPathPrefix.Length..];
+        }
+
+        return path;
     }
 }
