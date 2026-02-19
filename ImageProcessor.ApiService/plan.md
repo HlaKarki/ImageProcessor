@@ -10,7 +10,8 @@ Build a production-grade distributed image processing system using modern .NET A
 1. User uploads an image via REST API
 2. System stores original in S3 and queues processing job
 3. Background worker processes image asynchronously
-4. User retrieves processed results via API
+4. Background worker runs AI enrichment asynchronously
+5. User retrieves processed + AI results via API
 
 ### Input
 - Single image upload (JPEG, PNG, WebP, etc.)
@@ -20,6 +21,7 @@ Build a production-grade distributed image processing system using modern .NET A
 {
   "jobId": "abc123",
   "status": "completed",
+  "aiStatus": "completed",
   "results": {
     "original": "https://cdn.../original.jpg",
     "thumbnails": {
@@ -27,10 +29,7 @@ Build a production-grade distributed image processing system using modern .NET A
       "medium": "https://cdn.../thumb-512.webp",
       "large": "https://cdn.../thumb-1024.webp"
     },
-    "optimized": {
-      "webp": "https://cdn.../optimized.webp",
-      "avif": "https://cdn.../optimized.avif"
-    },
+    "optimized": { "webp": "https://cdn.../optimized.webp" },
     "metadata": {
       "width": 4032,
       "height": 3024,
@@ -38,6 +37,19 @@ Build a production-grade distributed image processing system using modern .NET A
       "fileSize": "3.2MB",
       "exif": { "camera": "...", "location": "..." },
       "dominantColors": ["#3B5998", "#8B9DC3", "#DFE3EE"]
+    },
+    "aiAnalysis": {
+      "summary": "A short caption of the image.",
+      "ocrText": "Detected text from the image.",
+      "tags": [{ "label": "landscape", "confidence": 0.94 }],
+      "safety": { "adult": false, "violence": false, "selfHarm": false },
+      "meta": {
+        "model": "gpt-4.1-mini",
+        "latencyMs": 972,
+        "inputTokens": 512,
+        "outputTokens": 98,
+        "estimatedCostUsd": 0.000132
+      }
     }
   }
 }
@@ -61,8 +73,8 @@ Build a production-grade distributed image processing system using modern .NET A
        │                                           │
        ▼                                           ▼
 ┌─────────────┐                            ┌─────────────┐
-│   Aspire    │                            │ CloudFront  │
-│ (Orchestr.) │                            │    (CDN)    │
+│   Aspire    │                            │ S3 / R2 +   │
+│ (Orchestr.) │                            │ signed URLs │
 └─────────────┘                            └─────────────┘
 ```
 
@@ -81,6 +93,7 @@ Build a production-grade distributed image processing system using modern .NET A
 - Download from S3
 - Image processing (resize, convert, optimize)
 - Metadata extraction (EXIF, colors)
+- AI enrichment (summary, tags, OCR, safety flags)
 - Upload results back to S3
 - Update job status in PostgreSQL
 
@@ -94,25 +107,26 @@ Build a production-grade distributed image processing system using modern .NET A
 
 ### Core Framework
 - **.NET 10.0** - Latest .NET runtime
-- **Aspire** - Cloud-native orchestration framework
+- **.NET Aspire 13.1.1** - Cloud-native orchestration framework
 
 ### Data & Storage
 - **PostgreSQL** - Relational database for job tracking
-- **Entity Framework Core 13.1.0** - ORM
-- **AWS S3** - Object storage for images
-- **CloudFront** - CDN for serving processed images
+- **Entity Framework Core 10.0.3** - ORM
+- **AWS S3 / Cloudflare R2** - Object storage for images
+- **Pre-signed read URLs** - secure private object access from browser
 
 ### Messaging & Background Jobs
 - **RabbitMQ** - Message queue for async processing
+- **Multi-stage queues** - image processing + AI enrichment
 - **Hangfire** - Background job scheduling (cleanup, retries)
 
 ### Caching & Resilience
 - **Microsoft.Extensions.Caching.Hybrid** - Distributed caching
-- **Microsoft.Extensions.Http.Resilience** - Retry policies, circuit breakers
+- **Microsoft.Extensions.Resilience** - Retry policies, circuit breakers, timeout
 
 ### Authentication & Security
 - **JWT Bearer** - API authentication
-- **LettuceEncrypt** - Automatic HTTPS certificates
+- **BCrypt.Net** - Password hashing
 
 ### Observability
 - **OpenTelemetry** - Distributed tracing
@@ -120,9 +134,12 @@ Build a production-grade distributed image processing system using modern .NET A
     - Instrumentation for HTTP
     - Exporter for OpenTelemetry Protocol
 
+### AI Enrichment
+- **OpenAI Chat Completions API (vision input)** - summary, OCR, tags, safety signals
+- **AI usage metadata** - model, latency, token usage, estimated cost
+
 ### Development Tools
-- **Swashbuckle (Swagger)** - API documentation
-- **MailPit** - Local email testing
+- **Scalar.AspNetCore + OpenAPI** - API documentation
 - **JetBrains Rider** - IDE
 
 ## 📊 Database Schema
@@ -195,11 +212,19 @@ File: image.jpg
 1. Update job status to "processing"
 2. Download original from S3
 3. Generate thumbnails (128px, 512px, 1024px)
-4. Convert to WebP and AVIF
+4. Convert to WebP
 5. Extract metadata (dimensions, EXIF, dominant colors)
 6. Upload all results to S3: `s3://bucket/processed/{userId}/{jobId}/`
 7. Update job record with results
 8. Update status to "completed"
+
+### 2b. AI Enrichment
+**Worker consumes AI queue from RabbitMQ:**
+1. Update AI status to "processing"
+2. Download optimized source image from S3/R2
+3. Send image to OpenAI for summary, OCR, tags, and safety flags
+4. Save AI analysis payload in PostgreSQL
+5. Update AI status to "completed"
 
 ### 3. Retrieve Results
 ```
@@ -248,10 +273,10 @@ Authorization: Bearer <jwt>
 - ✅ Job persistence
 - ✅ Retry policies
 
-**AWS S3 + CloudFront**
+**AWS S3 / Cloudflare R2**
 - ✅ Object storage patterns
 - ✅ Pre-signed URLs
-- ✅ CDN integration
+- ✅ Private object delivery with signed URLs
 - ✅ Multipart uploads
 
 **Hybrid Caching**
@@ -259,7 +284,7 @@ Authorization: Bearer <jwt>
 - ✅ Cache invalidation strategies
 - ✅ Cache-aside pattern
 
-**Http.Resilience**
+**Resilience Pipelines**
 - ✅ Retry policies with exponential backoff
 - ✅ Circuit breaker pattern
 - ✅ Timeout policies
@@ -312,11 +337,11 @@ Authorization: Bearer <jwt>
 - [x] Extract EXIF metadata
 - [x] Calculate dominant colors
 
-### Phase 5: Storage & CDN (Week 3)
+### Phase 5: Storage & Delivery (Week 3)
 - [x] Upload processed results to S3
 - [ ] ~~Configure CloudFront distribution~~ (infrastructure, revisit later)
 - [ ] ~~Generate CDN URLs~~ (revisit after CDN setup)
-- [ ] ~~Implement pre-signed URLs for uploads~~ (revisit later)
+- [x] Implement pre-signed read URLs for private object access
    
 ### Phase 6: Caching (Week 3-4)
 - [x] Set up Hybrid Cache
@@ -345,13 +370,19 @@ Authorization: Bearer <jwt>
 - [x] Add rate limiting
 - [x] Security hardening
 
+### Phase 11: AI Enrichment
+- [x] Add AI queue contract and topology
+- [x] Implement worker AI consumer
+- [x] Integrate OpenAI vision analysis
+- [x] Persist AI analysis payload + AI status fields
+- [x] Expose AI analysis through API DTOs
+
 ## 🧪 API Endpoints
 
 ### Authentication
 ```
 POST /api/auth/register
 POST /api/auth/login
-POST /api/auth/refresh
 ```
 
 ### Images
@@ -359,7 +390,6 @@ POST /api/auth/refresh
 POST   /api/images/upload       - Upload new image
 GET    /api/images/{jobId}      - Get job status/results
 GET    /api/images              - List user's jobs (paginated)
-DELETE /api/images/{jobId}      - Delete job and files
 ```
 
 ### Health
@@ -403,9 +433,9 @@ You'll know you've succeeded when:
 - ✅ You can upload an image and get processed results
 - ✅ Services communicate via RabbitMQ successfully
 - ✅ Jobs are tracked in PostgreSQL with proper status updates
-- ✅ Images are stored in S3 and served via CloudFront
+- ✅ Images are stored in S3/R2 and served via pre-signed read URLs
 - ✅ Hybrid Cache reduces database load
-- ✅ Http.Resilience handles S3 failures gracefully
+- ✅ Resilience policies handle storage failures gracefully
 - ✅ OpenTelemetry traces show end-to-end request flow
 - ✅ Hangfire runs scheduled cleanup jobs
 - ✅ API is protected with JWT authentication

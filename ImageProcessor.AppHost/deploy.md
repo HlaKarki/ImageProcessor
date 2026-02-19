@@ -17,3 +17,13 @@ dotnet publish ImageProcessor.Worker \
 -p ContainerRepository=hlakarki/imageprocessor-worker \
 -p ContainerImageTag=latest
 ```
+
+# Docker
+```
+docker compose pull
+docker compose up -d --force-recreate
+```
+
+```
+scp deploy/.env root@[ip]:~/imageprocessor/deploy/.env
+```

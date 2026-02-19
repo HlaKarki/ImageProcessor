@@ -80,6 +80,7 @@ services:
       CF__Region: "${CF_REGION}"
       CF__ServiceURL: "${CF_SERVICE_URL}"
       Cors__AllowedOrigins: "${CORS_ALLOWED_ORIGINS}"
+      AI__OpenAI__ApiKey: "${OPENAI_API_KEY}"
     ports:
       - "${APISERVICE_PORT}:${APISERVICE_PORT}"
     depends_on:
@@ -123,6 +124,7 @@ services:
       CF__BucketName: "${CF_BUCKET_NAME}"
       CF__Region: "${CF_REGION}"
       CF__ServiceURL: "${CF_SERVICE_URL}"
+      AI__OpenAI__ApiKey: "${OPENAI_API_KEY}"
     depends_on:
       rabbitmq:
         condition: "service_started"

@@ -5,7 +5,6 @@ import { env } from '#/env'
 
 export const Route = createFileRoute('/')({ component: App })
 
-const API_URL_STORAGE_KEY = 'image-processor.api-url'
 const TOKEN_STORAGE_KEY = 'image-processor.token'
 const DEFAULT_API_BASE_URL = env.VITE_API_BASE_URL ?? 'http://localhost:5434'
 const PAGE_SIZE = 20
@@ -102,10 +101,6 @@ interface PagedResponse<T> {
   pageSize: number
   totalCount: number
   totalPages: number
-}
-
-function normalizeApiBaseUrl(url: string): string {
-  return url.trim().replace(/\/+$/, '')
 }
 
 async function readError(response: Response): Promise<string> {
@@ -337,8 +332,7 @@ async function fetchJobById(
 function App() {
   const queryClient = useQueryClient()
   const detailSectionRef = useRef<HTMLElement | null>(null)
-  const [apiBaseUrl, setApiBaseUrl] = useState(DEFAULT_API_BASE_URL)
-  const [apiBaseUrlDraft, setApiBaseUrlDraft] = useState(DEFAULT_API_BASE_URL)
+  const apiBaseUrl = DEFAULT_API_BASE_URL
   const [token, setToken] = useState('')
   const [authMode, setAuthMode] = useState<AuthMode>('login')
   const [name, setName] = useState('')
@@ -355,13 +349,6 @@ function App() {
   useEffect(() => {
     if (typeof window === 'undefined') {
       return
-    }
-
-    const storedApiUrl = window.localStorage.getItem(API_URL_STORAGE_KEY)
-    if (storedApiUrl) {
-      const normalized = normalizeApiBaseUrl(storedApiUrl)
-      setApiBaseUrl(normalized)
-      setApiBaseUrlDraft(normalized)
     }
 
     const storedToken = window.localStorage.getItem(TOKEN_STORAGE_KEY)
@@ -556,42 +543,6 @@ function App() {
 
       <section className="mt-6 grid gap-6 xl:grid-cols-[1.3fr_1fr]">
         <div className="space-y-6">
-          <form
-            className="rounded-2xl border border-neutral-200 p-5"
-            onSubmit={(event) => {
-              event.preventDefault()
-              const normalized = normalizeApiBaseUrl(apiBaseUrlDraft)
-              setApiBaseUrl(normalized)
-              setApiBaseUrlDraft(normalized)
-
-              if (typeof window !== 'undefined') {
-                window.localStorage.setItem(API_URL_STORAGE_KEY, normalized)
-              }
-            }}
-          >
-            <h2 className="text-base font-semibold text-neutral-950">Connection</h2>
-            <p className="mt-1 text-sm text-neutral-600">
-              Point the UI to your API service URL.
-            </p>
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-              <input
-                value={apiBaseUrlDraft}
-                onChange={(event) => setApiBaseUrlDraft(event.target.value)}
-                placeholder="https://api.example.com"
-                className="h-10 flex-1 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-neutral-500"
-              />
-              <button
-                type="submit"
-                className="h-10 rounded-lg border border-neutral-900 px-4 text-sm font-medium text-neutral-900 transition hover:bg-neutral-900 hover:text-white"
-              >
-                Save endpoint
-              </button>
-            </div>
-            <p className="mt-2 text-xs text-neutral-500">
-              Active endpoint: {apiBaseUrl}
-            </p>
-          </form>
-
           <section className="rounded-2xl border border-neutral-200 p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
