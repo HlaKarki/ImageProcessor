@@ -11,6 +11,7 @@ public partial class JobMapper
     public partial JobResponse ToResponse(Job job);
 
     private static string MapStatus(JobStatus status) => status.ToString();
+    private static string MapAiStatus(JobAiStatus status) => status.ToString();
 
     private static Dictionary<string, string>? MapJsonDocument(JsonDocument? document)
     {
@@ -37,5 +38,15 @@ public partial class JobMapper
         }
 
         return metadata.RootElement.Deserialize<JobMetadataResponse>();
+    }
+
+    private static JobAiAnalysisResponse? MapToJobAiAnalysisResponse(JsonDocument? aiAnalysis)
+    {
+        if (aiAnalysis is null)
+        {
+            return null;
+        }
+
+        return aiAnalysis.RootElement.Deserialize<JobAiAnalysisResponse>();
     }
 }

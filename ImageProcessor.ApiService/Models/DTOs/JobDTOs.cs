@@ -9,6 +9,33 @@ public record JobMetadataResponse(
     string[] DominantColors
 );
 
+public record JobAiTagResponse(
+    string Label,
+    double Confidence
+);
+
+public record JobAiSafetyResponse(
+    bool Adult,
+    bool Violence,
+    bool SelfHarm
+);
+
+public record JobAiMetaResponse(
+    string Model,
+    int LatencyMs,
+    int? InputTokens,
+    int? OutputTokens,
+    double? EstimatedCostUsd
+);
+
+public record JobAiAnalysisResponse(
+    string Summary,
+    string? OcrText,
+    IEnumerable<JobAiTagResponse> Tags,
+    JobAiSafetyResponse Safety,
+    JobAiMetaResponse Meta
+);
+
 public record JobResponse(
     Guid Id,
     Guid UserId,
@@ -23,5 +50,11 @@ public record JobResponse(
     int RetryCount,
     Dictionary<string, string>? Thumbnails,
     Dictionary<string, string>? Optimized,
-    JobMetadataResponse? Metadata
+    JobMetadataResponse? Metadata,
+    string AiStatus,
+    DateTime? AiStartedAt,
+    DateTime? AiCompletedAt,
+    string? AiErrorMessage,
+    int AiRetryCount,
+    JobAiAnalysisResponse? AiAnalysis
 );

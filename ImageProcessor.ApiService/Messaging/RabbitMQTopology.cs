@@ -15,5 +15,12 @@ public static class RabbitMQTopology
             exclusive: false,
             autoDelete: false
         );
+
+        await channel.QueueDeclareAsync(
+            queue: QueueNames.ImageAiJobs,
+            durable: true,
+            exclusive: false,
+            autoDelete: false
+        );
     }
 }

@@ -47,13 +47,15 @@ else
 
 // ── Application Services ──────────────────────────────────
 builder.Services.AddScoped<ImageProcessingService>();
+builder.Services.AddScoped<ImageAnalysisService>();
+builder.Services.AddHttpClient(nameof(ImageAnalysisService));
 builder.Services.AddHostedService<Worker>();
 
 // ── Resilience ────────────────────────────────────────────
 builder.Services.AddResiliencePipeline("storage", pipeline =>
 {
     pipeline
-        .AddTimeout(TimeSpan.FromSeconds(30))
+        .AddTimeout(TimeSpan.FromSeconds(120))
         .AddCircuitBreaker(new CircuitBreakerStrategyOptions
         {
             FailureRatio = 0.5,

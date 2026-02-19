@@ -46,6 +46,33 @@ interface JobMetadata {
   dominantColors: string[]
 }
 
+interface JobAiTag {
+  label: string
+  confidence: number
+}
+
+interface JobAiSafety {
+  adult: boolean
+  violence: boolean
+  selfHarm: boolean
+}
+
+interface JobAiMeta {
+  model: string
+  latencyMs: number
+  inputTokens: number | null
+  outputTokens: number | null
+  estimatedCostUsd: number | null
+}
+
+interface JobAiAnalysis {
+  summary: string
+  ocrText: string | null
+  tags: JobAiTag[]
+  safety: JobAiSafety
+  meta: JobAiMeta
+}
+
 interface JobResponse {
   id: string
   userId: string
@@ -61,6 +88,12 @@ interface JobResponse {
   thumbnails: Record<string, string> | null
   optimized: Record<string, string> | null
   metadata: JobMetadata | null
+  aiStatus: string
+  aiStartedAt: string | null
+  aiCompletedAt: string | null
+  aiErrorMessage: string | null
+  aiRetryCount: number
+  aiAnalysis: JobAiAnalysis | null
 }
 
 interface PagedResponse<T> {
@@ -188,6 +221,33 @@ function getStatusClasses(status: string): string {
     default:
       return 'border-neutral-200 text-neutral-700'
   }
+}
+
+function resolveOverallStatus(job: JobResponse): string {
+  if (job.status === 'Error' || job.aiStatus === 'Error') {
+    return 'Error'
+  }
+
+  if (job.status === 'Pending' || job.status === 'Processing') {
+    return 'Processing'
+  }
+
+  if (
+    SUCCESS_STATUSES.has(job.status) &&
+    (job.aiStatus === 'Pending' || job.aiStatus === 'Processing')
+  ) {
+    return 'AI Processing'
+  }
+
+  if (SUCCESS_STATUSES.has(job.status) && job.aiStatus === 'Completed') {
+    return 'Completed'
+  }
+
+  if (SUCCESS_STATUSES.has(job.status) && job.aiStatus === 'Skipped') {
+    return 'Completed'
+  }
+
+  return 'Processing'
 }
 
 function getDurationSeconds(job: JobResponse): number | null {
@@ -460,8 +520,7 @@ function App() {
             ImageProcessor Pipeline Console
           </h1>
           <p className="max-w-3xl text-sm text-neutral-600">
-            Showcase your .NET backend by signing in, uploading an image, and
-            tracking each job through queueing, processing, and final assets.
+            Sign in, upload an image, and inspect job processing and AI results.
           </p>
         </div>
         <button
@@ -682,55 +741,59 @@ function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {jobs.map((job) => (
-                        <tr
-                          key={job.id}
-                          className={
-                            job.id === selectedJobId
-                              ? 'border-b border-neutral-100 bg-neutral-50'
-                              : 'border-b border-neutral-100'
-                          }
-                        >
-                          <td className="py-3 pr-4 align-top">
-                            <p className="font-medium text-neutral-900">
-                              {job.id.slice(0, 8)}...
-                            </p>
-                            <p className="mt-1 text-xs text-neutral-500">
-                              {formatBytes(job.fileSize)}
-                            </p>
-                          </td>
-                          <td className="py-3 pr-4 align-top text-neutral-700">
-                            <div className="max-w-[180px] truncate">
-                              {job.originalFilename}
-                            </div>
-                          </td>
-                          <td className="py-3 pr-4 align-top">
-                            <span
-                              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusClasses(job.status)}`}
-                            >
-                              {job.status}
-                            </span>
-                          </td>
-                          <td className="py-3 pr-4 align-top text-neutral-600">
-                            {formatDateTime(job.createdAt)}
-                          </td>
-                          <td className="py-3 align-top">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedJobId(job.id)
-                                detailSectionRef.current?.scrollIntoView({
-                                  behavior: 'smooth',
-                                  block: 'start',
-                                })
-                              }}
-                              className="rounded-md border border-neutral-300 px-2.5 py-1 text-xs font-medium text-neutral-700 transition hover:border-neutral-500"
-                            >
-                              Inspect
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {jobs.map((job) => {
+                        const overallStatus = resolveOverallStatus(job)
+
+                        return (
+                          <tr
+                            key={job.id}
+                            className={
+                              job.id === selectedJobId
+                                ? 'border-b border-neutral-100 bg-neutral-50'
+                                : 'border-b border-neutral-100'
+                            }
+                          >
+                            <td className="py-3 pr-4 align-top">
+                              <p className="font-medium text-neutral-900">
+                                {job.id.slice(0, 8)}...
+                              </p>
+                              <p className="mt-1 text-xs text-neutral-500">
+                                {formatBytes(job.fileSize)}
+                              </p>
+                            </td>
+                            <td className="py-3 pr-4 align-top text-neutral-700">
+                              <div className="max-w-[180px] truncate">
+                                {job.originalFilename}
+                              </div>
+                            </td>
+                            <td className="py-3 pr-4 align-top">
+                              <span
+                                className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusClasses(overallStatus)}`}
+                              >
+                                {overallStatus}
+                              </span>
+                            </td>
+                            <td className="py-3 pr-4 align-top text-neutral-600">
+                              {formatDateTime(job.createdAt)}
+                            </td>
+                            <td className="py-3 align-top">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedJobId(job.id)
+                                  detailSectionRef.current?.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'start',
+                                  })
+                                }}
+                                className="rounded-md border border-neutral-300 px-2.5 py-1 text-xs font-medium text-neutral-700 transition hover:border-neutral-500"
+                              >
+                                Inspect
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -937,11 +1000,37 @@ function App() {
                       <dt className="text-neutral-500">Retry count</dt>
                       <dd className="text-neutral-800">{selectedJob.retryCount}</dd>
                     </div>
+                    <div>
+                      <dt className="text-neutral-500">AI status</dt>
+                      <dd className="text-neutral-800">{selectedJob.aiStatus}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-neutral-500">AI started</dt>
+                      <dd className="text-neutral-800">
+                        {formatDateTime(selectedJob.aiStartedAt)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-neutral-500">AI completed</dt>
+                      <dd className="text-neutral-800">
+                        {formatDateTime(selectedJob.aiCompletedAt)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-neutral-500">AI retry count</dt>
+                      <dd className="text-neutral-800">{selectedJob.aiRetryCount}</dd>
+                    </div>
                   </dl>
 
                   {selectedJob.errorMessage && (
                     <p className="mt-3 rounded-lg border border-rose-200 px-3 py-2 text-sm text-rose-700">
                       {selectedJob.errorMessage}
+                    </p>
+                  )}
+
+                  {selectedJob.aiErrorMessage && (
+                    <p className="mt-3 rounded-lg border border-rose-200 px-3 py-2 text-sm text-rose-700">
+                      AI: {selectedJob.aiErrorMessage}
                     </p>
                   )}
                 </div>
@@ -1102,6 +1191,125 @@ function App() {
                         </ul>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {selectedJob.aiAnalysis && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-neutral-900">
+                      AI analysis
+                    </h3>
+
+                    <div className="rounded-lg border border-neutral-200 px-3 py-2">
+                      <p className="text-xs uppercase tracking-wide text-neutral-500">
+                        Summary
+                      </p>
+                      <p className="mt-1 text-sm text-neutral-800">
+                        {selectedJob.aiAnalysis.summary}
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg border border-neutral-200 px-3 py-2">
+                      <p className="text-xs uppercase tracking-wide text-neutral-500">
+                        OCR text
+                      </p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-800">
+                        {selectedJob.aiAnalysis.ocrText ?? 'No text detected.'}
+                      </p>
+                    </div>
+
+                    {selectedJob.aiAnalysis.tags.length > 0 && (
+                      <div>
+                        <p className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
+                          Structured tags
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedJob.aiAnalysis.tags.map((tag) => (
+                            <span
+                              key={`${tag.label}-${tag.confidence}`}
+                              className="inline-flex items-center gap-2 rounded-full border border-neutral-200 px-2.5 py-1 text-xs text-neutral-700"
+                            >
+                              <span>{tag.label}</span>
+                              <span className="text-neutral-500">
+                                {(tag.confidence * 100).toFixed(0)}%
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <p className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
+                        Safety flags
+                      </p>
+                      <ul className="space-y-1 text-sm">
+                        <li className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2">
+                          <span className="text-neutral-600">Adult</span>
+                          <span className="text-neutral-800">
+                            {selectedJob.aiAnalysis.safety.adult
+                              ? 'Detected'
+                              : 'Not detected'}
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2">
+                          <span className="text-neutral-600">Violence</span>
+                          <span className="text-neutral-800">
+                            {selectedJob.aiAnalysis.safety.violence
+                              ? 'Detected'
+                              : 'Not detected'}
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2">
+                          <span className="text-neutral-600">Self harm</span>
+                          <span className="text-neutral-800">
+                            {selectedJob.aiAnalysis.safety.selfHarm
+                              ? 'Detected'
+                              : 'Not detected'}
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <p className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
+                        AI meta
+                      </p>
+                      <ul className="space-y-1 text-sm">
+                        <li className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2">
+                          <span className="text-neutral-600">Model</span>
+                          <span className="text-neutral-800">
+                            {selectedJob.aiAnalysis.meta.model}
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2">
+                          <span className="text-neutral-600">Latency</span>
+                          <span className="text-neutral-800">
+                            {selectedJob.aiAnalysis.meta.latencyMs}ms
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2">
+                          <span className="text-neutral-600">Input tokens</span>
+                          <span className="text-neutral-800">
+                            {selectedJob.aiAnalysis.meta.inputTokens ?? '--'}
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2">
+                          <span className="text-neutral-600">Output tokens</span>
+                          <span className="text-neutral-800">
+                            {selectedJob.aiAnalysis.meta.outputTokens ?? '--'}
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2">
+                          <span className="text-neutral-600">Estimated cost</span>
+                          <span className="text-neutral-800">
+                            {selectedJob.aiAnalysis.meta.estimatedCostUsd !== null
+                              ? `$${selectedJob.aiAnalysis.meta.estimatedCostUsd.toFixed(6)}`
+                              : '--'}
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
                   </div>
                 )}
               </div>

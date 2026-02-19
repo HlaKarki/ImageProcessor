@@ -2,6 +2,7 @@ namespace ImageProcessor.Data.Models.Domain;
 using System.Text.Json;
 
 public enum JobStatus { Pending, Processing, Completed, Finished, Error }
+public enum JobAiStatus { Pending, Processing, Completed, Error, Skipped }
 
 public class Job
 {
@@ -27,6 +28,14 @@ public class Job
     public JsonDocument? Thumbnails { get; set; } // thumbnails
     public JsonDocument? Optimized { get; set; } // optimized images
     public JsonDocument? Metadata { get; set; } // metadata
+
+    // AI enrichment
+    public JobAiStatus AiStatus { get; set; } = JobAiStatus.Pending;
+    public DateTime? AiStartedAt { get; set; }
+    public DateTime? AiCompletedAt { get; set; }
+    public string? AiErrorMessage { get; set; }
+    public int AiRetryCount { get; set; }
+    public JsonDocument? AiAnalysis { get; set; }
 }
 
 // Create index on UserId

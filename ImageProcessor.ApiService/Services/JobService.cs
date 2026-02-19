@@ -46,6 +46,7 @@ public class JobService(
                 UserId = new Guid(userId),
             
                 Status = JobStatus.Pending,
+                AiStatus = JobAiStatus.Pending,
             
                 OriginalUrl = url,
                 OriginalFilename = file.FileName,
@@ -139,7 +140,7 @@ public class JobService(
                         (int)Math.Ceiling((double)results.TotalCount / pageSize)
                     );
                 },
-                new HybridCacheEntryOptions { Expiration = TimeSpan.FromHours(1) },
+                new HybridCacheEntryOptions { Expiration = TimeSpan.FromSeconds(10) },
                 tags: [$"user-jobs:{userId}"]
             );
 
