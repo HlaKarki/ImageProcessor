@@ -426,3 +426,17 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Web (React / TanStack Start / Cloudflare)
+web/.env
+web/.env.*
+!web/.env.example
+web/node_modules/
+web/dist/
+web/coverage/
+web/.vite/
+web/.wrangler/
+web/.dev.vars
+web/.tanstack/
+web/src/routeTree.gen.ts
+web/*.tsbuildinfo
